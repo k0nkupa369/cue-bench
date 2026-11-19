@@ -1,4 +1,4 @@
-name: Replay fictional orders
+name: Verify benchmark and playable case
 on: [push, pull_request]
 permissions:
   contents: read
@@ -11,9 +11,6 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts
-      - run: npm run typecheck
-      - run: npm run pages:build
-      - run: npm run demo
-      - run: node src/retail/verify-publication.ts
-      - run: node src/retail/navigation-experiment.ts verify
-      - run: npm run research:report
+      - run: npm test
+      - run: npx playwright install --no-shell chromium
+      - run: npm run pages:check
