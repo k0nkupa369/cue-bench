@@ -1,7 +1,7 @@
 import {chromium,type Browser,type Page} from 'playwright';
 import {createHash} from 'node:crypto';
 import {existsSync,mkdirSync,readFileSync,renameSync,unlinkSync,writeFileSync} from 'node:fs';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import {z} from 'zod';
 import {Desk} from './ledger.ts';
 import {startRetail} from './server.ts';
@@ -30,7 +30,8 @@ export function plan():Job[]{
   return rows;
 }
 
-const root='retail/local/study';
+const root=fileURLToPath(new URL('../../retail/local/study',import.meta.url));
+let haltPaid=false;
 const budgetFile=root+'/budget.json';
 const maxUsd=25;
 type Charge={attempt:string,reserved:number,cost?:number,input?:number,cached?:number,output?:number};
@@ -39,6 +40,7 @@ function atomic(file:string,data:unknown){
 }
 function reserve(id:string,model:Model){
   // Reserve the full context at the standard uncached price plus maximum output, before sending.
+  if(haltPaid)throw Error('Paid requests stopped pending receipt reconciliation');
   const bound=(400000*rates[model].input+protocol.outputTokens*rates[model].output)/1e6;
   const charges:Charge[]=existsSync(budgetFile)?JSON.parse(readFileSync(budgetFile,'utf8')):[];
   if(charges.reduce((n,c)=>n+(c.cost??c.reserved),0)+bound>maxUsd) throw Error('Shared study spend limit reached');
@@ -151,7 +153,7 @@ async function runJob(browser:Browser,j:Job,rehearsal=false):Promise<LiveAttempt
       }
     }
     termination=desk.finished?'closed':error?'interrupted':'limit';
-  }catch(e){error=signal.aborted?'Time limit':e instanceof Error?e.message.slice(0,240):'Interrupted';termination=signal.aborted?'limit':'interrupted';}
+  }catch(e){if(unknownCharges)haltPaid=true;error=signal.aborted?'Time limit':e instanceof Error?e.message.slice(0,240):'Interrupted';termination=signal.aborted?'limit':'interrupted';}
   finally{signal.removeEventListener('abort',close);await context.close();f.close();}
   const desk=[...f.sessions.values()][0];if(!desk)throw Error('Browser did not start the job');
   return {...capture(desk),id:j.id,phase:j.phase,model:rates[j.model].snapshot,origin:rehearsal?'scripted':'openai',mode:j.mode,
@@ -195,6 +197,8 @@ async function main(){
         costUsd:charges.reduce((n,c)=>n+(c.cost??0),0),tokens:charges.reduce((n,c)=>n+(c.input??0)+(c.output??0),0),
         receiptCount:charges.filter(c=>c.cost!==undefined).length,unknownCharges:charges.filter(c=>c.cost===undefined).length});
     }
+    const past:Charge[]=existsSync(budgetFile)?JSON.parse(readFileSync(budgetFile,'utf8')):[];
+    if(past.some(c=>c.cost===undefined) && !process.argv.includes('--retain-unknown-reservations'))throw Error('Unmetered requests retain full reservations; inspect before resuming');
     if(command!=='calibration'){
       for(const j of jobs.filter(j=>j.phase==='calibration')){
         const path=root+'/attempts/'+j.id+'.json';
@@ -209,7 +213,7 @@ async function main(){
     try{
       let stop=false;
       const workers=await Promise.allSettled(Array.from({length:4},async()=>{
-        while(!stop && queue.length){
+        while(!stop && !haltPaid && queue.length){
           const j=queue.shift()!;
           try{
           writeFileSync(root+'/attempts/'+j.id+'.claim',String(Date.now()),{flag:'wx'});
