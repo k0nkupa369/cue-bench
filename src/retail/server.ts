@@ -3,10 +3,10 @@ import {randomUUID,randomInt} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {once} from 'node:events';
 import {pathToFileURL} from 'node:url';
-import {Desk,conditions,type Condition,type Screen} from './ledger.ts';
+import {Desk,conditions,workflows,type Workflow,type Condition,type Screen} from './ledger.ts';
 import {page,workspace,escape} from './views.ts';
 
-export async function startRetail(options:{seed?:number,condition?:Condition}={}) {
+export async function startRetail(options:{seed?:number,condition?:Condition,workflow?:Workflow}={}) {
   const sessions=new Map<string,Desk>();
   const server=createServer(async(req,res)=>{
     const url=new URL(req.url??'/','http://localhost');
@@ -17,14 +17,16 @@ export async function startRetail(options:{seed?:number,condition?:Condition}={}
     const d=token?sessions.get(token):undefined;
     try{
       if(req.method==='GET' && url.pathname==='/style.css') return send(200,readFileSync(new URL('../../retail/style.css',import.meta.url),'utf8'),'text/css');
-      if(req.method==='GET' && url.pathname==='/') return send(200,page('<p class="eyebrow">Operations benchmark</p><h1>The receiving desk</h1><p class="brief">A delivery arrives with two product lines. Reconcile it against the purchase order and leave the warehouse books correct.</p><form method="post" action="/start"><button>Start receiving job</button></form>','Retail operations'));
+      if(req.method==='GET' && url.pathname==='/') return send(200,page('<p class="eyebrow">Operations benchmark</p><h1>Retail workbench</h1><p class="brief">Receive a delivery, move stock between warehouses, or reconcile a return. Use the documents and journals to verify what posted.</p><div class="choices">'+workflows.map(w=>'<form method="post" action="/start?workflow='+w+'"><button>Start '+w+' job</button></form>').join('')+'</div>','Retail operations'));
       if(req.method==='POST' && req.headers.origin!=='http://'+req.headers.host) return send(403,'Origin rejected');
       if(req.method==='POST' && url.pathname==='/start'){
+        const choice=url.searchParams.get('workflow')??'receiving';
+        if(!workflows.some(w=>w===choice))return send(400,'Unknown workflow');
         if(token) sessions.delete(token);
         if(sessions.size>=500) for(const [id,old] of sessions) if(old.finished || Date.now()-old.lastSeen>3600000) sessions.delete(id);
         if(sessions.size>=500) return send(503,'Session capacity reached');
         const id=randomUUID();
-        sessions.set(id,new Desk(options.seed??randomInt(1,5),options.condition??conditions[randomInt(conditions.length)]));
+        sessions.set(id,new Desk(options.seed??randomInt(1,5),options.condition??conditions[randomInt(conditions.length)],options.workflow??choice as Workflow));
         res.setHeader('Set-Cookie',cookie+'='+id+'; HttpOnly; SameSite=Strict; Path=/');
         return redirect('/desk');
       }
