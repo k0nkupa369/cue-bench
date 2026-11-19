@@ -44,7 +44,7 @@ export function reveal(d:Desk){
     '<div class="choices">'+link('/trace?id='+d.id,'Inspect your attempt')+link('/','Try another job')+'</div>','Job result');
 }
 function filter(name:string,options:string[],chosen:string){
-  return '<label>'+h(name)+'<select name="'+h(name)+'"><option value="">All</option>'+options.map(o=>'<option '+(o===chosen?'selected ':'')+'value="'+h(o)+'">'+h(o)+'</option>').join('')+'</select></label>';
+  return '<label>'+h(name)+'<select aria-label="'+h(name)+'" name="'+h(name)+'"><option value="">All</option>'+options.map(o=>'<option '+(o===chosen?'selected ':'')+'value="'+h(o)+'">'+h(o)+'</option>').join('')+'</select></label>';
 }
 function traceRow(a:Attempt){
   const g=grade(a);
@@ -54,9 +54,13 @@ export function results(params:URLSearchParams){
   const rows=attempts();
   const fields=['workflow','condition','origin','model','mode','phase'] as const;
   const filtered=rows.filter(r=>fields.every(k=>!params.get(k)||r[k]===params.get(k)));
-  const scores=filtered.map(grade),passed=scores.filter(g=>g.complete).length;
+  const cohorts=['openai','human','scripted'].map(origin=>{
+    const members=filtered.filter(r=>r.origin===origin);if(!members.length)return '';
+    const scores=members.map(grade);
+    return '<p><strong>'+origin+' · '+scores.filter(g=>g.complete).length+' / '+members.length+' completed correctly</strong> · '+scores.filter(g=>g.recovery).length+' / '+scores.filter(g=>g.recovery!==null).length+' recovered · '+members.filter(r=>r.termination==='interrupted').length+' interrupted</p>';
+  }).join('');
   return shell('<p class="eyebrow">Research / Evidence</p><h1>Results explorer</h1><form class="filters" method="get">'+fields.map(k=>filter(k,[...new Set(rows.map(r=>r[k]))].sort(),params.get(k)??'')).join('')+'<button>Apply filters</button></form>'+
-    '<p><strong>'+passed+' / '+filtered.length+' completed correctly</strong> · '+scores.filter(g=>g.recovery).length+' / '+scores.filter(g=>g.recovery!==null).length+' recovered · '+filtered.filter(r=>r.termination==='interrupted').length+' interrupted</p>'+
+    (cohorts||'<p>No attempts match these filters.</p>')+
     '<div class="scroll"><table><thead><tr><th>Attempt</th><th>Origin</th><th>Stop</th><th>Outcome</th><th>Recovery</th><th>Excess units</th></tr></thead><tbody>'+filtered.map(traceRow).join('')+'</tbody></table></div>','Results explorer');
 }
 function frames(a:Attempt){
@@ -90,10 +94,11 @@ export function replay(params:URLSearchParams){
     '<div class="transport">'+(step>min?nav(step-1,'← Previous'):'<span>Start</span>')+'<strong>Step '+step+'</strong>'+nav(0,'Align at fault')+(step<max?nav(step+1,'Next →'):'<span>End</span>')+'</div><div class="compare">'+frameCard(first,anchor(first)+step)+frameCard(second,anchor(second)+step)+'</div><p>'+link(url('/trace',{id:first.id}),'Full first attempt')+' · '+link(url('/trace',{id:second.id}),'Full second attempt')+'</p>','Replay room');
 }
 export function trace(id:string){
-  const a=attempts().find(r=>r.id===id);
+  const all=attempts();
+  const a=all.find(r=>r.id===id);
   if(!a)return shell('<h1>Attempt unavailable</h1>','Attempt');
   return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(a.termination)+'</p>'+decision(a)+
-    '<p>'+a.actions+' actions · '+(a.durationMs/1000).toFixed(1)+' seconds · '+a.tokens+' tokens · US$'+a.costUsd.toFixed(5)+' metered</p><p>'+link(url('/replays',{a:id}),'Compare matched attempts')+'</p><section><h2>Decision history</h2>'+a.events.map(e=>'<details><summary>'+e.ms+' ms · '+h(e.kind)+' '+h(e.screen??e.result??'')+'</summary><pre>'+h(JSON.stringify(e,null,2))+'</pre></details>').join('')+'</section>','Attempt record');
+    '<p>'+a.actions+' actions · '+(a.durationMs/1000).toFixed(1)+' seconds · '+a.tokens+' tokens · US$'+a.costUsd.toFixed(5)+' metered</p><p>'+(all.some(r=>r.id!==a.id&&r.condition===a.condition&&r.seed===a.seed&&r.workflow===a.workflow)?link(url('/replays',{a:id}),'Compare matched attempts'):'No matched peer has been recorded.')+'</p><section><h2>Recorded browser frames</h2>'+frames(a).map((f,i)=>'<details><summary>'+i+' · '+h(f.action)+'</summary>'+frameCard(a,i)+'</details>').join('')+'</section><section><h2>Decision history</h2>'+a.events.map(e=>'<details><summary>'+e.ms+' ms · '+h(e.kind)+' '+h(e.screen??e.result??'')+'</summary><pre>'+h(JSON.stringify(e,null,2))+'</pre></details>').join('')+'</section>','Attempt record');
 }
 export function screenshot(name:string){
   if(!/^[a-f0-9]{64}\.jpg$/.test(name))return;

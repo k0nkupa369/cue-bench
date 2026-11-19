@@ -19,6 +19,7 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
     const token=req.headers.cookie?.split(';').map(value=>value.trim()).find(value=>value.startsWith(cookie+'='))?.slice(cookie.length+1);
     const d=token?sessions.get(token):undefined;
     try{
+      if(!options.humanArchive && ['/replays','/results','/trace','/portfolio.css','/screens'].some(path=>url.pathname===path||url.pathname.startsWith(path+'/')))return send(404,'Not available in an operator session');
       if(req.method==='GET' && url.pathname==='/portfolio.css')return send(200,readFileSync(new URL('../../retail/portfolio.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET' && url.pathname==='/replays')return send(200,replay(url.searchParams));
       if(req.method==='GET' && url.pathname==='/results')return send(200,results(url.searchParams));
@@ -27,14 +28,15 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
         const bytes=screenshot(url.pathname.slice(9));return bytes?res.writeHead(200,{'Content-Type':'image/jpeg'}).end(bytes):send(404,'Missing screenshot');
       }
       if(req.method==='GET' && url.pathname==='/style.css') return send(200,readFileSync(new URL('../../retail/style.css',import.meta.url),'utf8'),'text/css');
-      if(req.method==='GET' && url.pathname==='/') return send(200,home());
+      if(req.method==='GET' && url.pathname==='/') return send(200,options.humanArchive?home():page('<h1>Retail workbench</h1>'+workflows.map(w=>'<form method="post" action="/start?workflow='+w+'"><button>Start '+w+' job</button></form>').join(''),'Retail workbench'));
       if(req.method==='POST' && req.headers.origin!=='http://'+req.headers.host) return send(403,'Origin rejected');
       if(req.method==='POST' && url.pathname==='/start'){
         const choice=url.searchParams.get('workflow')??'receiving';
         if(!workflows.some(w=>w===choice))return send(400,'Unknown workflow');
-        if(token) sessions.delete(token);
+        if(token && options.humanArchive) sessions.delete(token);
         if(sessions.size>=500) for(const [id,old] of sessions) if(old.finished || Date.now()-old.lastSeen>3600000) sessions.delete(id);
         if(sessions.size>=500) return send(503,'Session capacity reached');
+        if(d && !options.humanArchive)return send(409,'Study session already started');
         const id=randomUUID();
         sessions.set(id,new Desk(options.seed??randomInt(1,5),options.condition??conditions[randomInt(conditions.length)],options.workflow??choice as Workflow));
         res.setHeader('Set-Cookie',cookie+'='+id+'; HttpOnly; SameSite=Strict; Path=/');
