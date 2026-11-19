@@ -9,6 +9,8 @@
     "start": "node src/retail/server.ts",
     "retail:run": "node src/retail/run.ts",
     "research:report": "node src/retail/findings.ts",
+    "pages:build": "node retail/static/build.ts",
+    "pages:check": "npm run pages:build && node retail/static/check.ts",
     "typecheck": "tsc --noEmit",
     "record": "node src/record.ts",
     "replay": "node src/replay.ts",

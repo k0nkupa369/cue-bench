@@ -86,7 +86,7 @@ function observationPrompt(mode:Mode,history:string[],view:Awaited<ReturnType<ty
     'Use click with integer x,y in the 1024x900 image; type with value; key with Tab, Enter, ArrowDown, ArrowUp, Backspace or ControlOrMeta+a; scroll with value up/down.';
   return 'Return a JSON object with actions and memo. '+controls+'\nPrior observations and actions:\n'+history.slice(-14).join('\n')+'\nCurrent screen:\n'+(view.image?'See image.':view.text);
 }
-async function act(page:Page,m:Move,mode:Mode){
+async function act(page:Page,m:Move,mode:Mode,waitForClickNavigation=true){
   if(mode==='controls'){
     if(m.target===undefined || m.target<0)throw Error('Invalid control index');
     const el=page.locator(selector).nth(m.target);
@@ -94,7 +94,7 @@ async function act(page:Page,m:Move,mode:Mode){
     else if(m.op==='select')await el.selectOption({label:m.value??''});else throw Error('Unknown control operation');
   }else{
     if(m.op==='click' && m.x!==undefined && m.y!==undefined && m.x>=0 && m.x<protocol.width && m.y>=0 && m.y<protocol.height){
-      const navigation=await page.evaluate(([x,y])=>{
+      const navigation=waitForClickNavigation&&await page.evaluate(([x,y])=>{
         const el=document.elementFromPoint(x,y)?.closest('a,button');
         return el instanceof HTMLAnchorElement || el instanceof HTMLButtonElement && !!el.form?.checkValidity();
       },[m.x,m.y]);

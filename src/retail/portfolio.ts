@@ -114,8 +114,20 @@ export function results(params:URLSearchParams,archive=defaultArchive){
     (standalone.length?'<section><h2>Standalone provider runs</h2><p>Operator-selected jobs and models.</p>'+table(standalone)+'</section>':'')+
     (filtered.length?'':'<p>No attempts match these filters.</p>'),'Results explorer');
 }
-function frames(a:VisitorAttempt){
+function frames(a:VisitorAttempt):Attempt['frames']{
   return a.frames.length?a.frames:a.events.map((e,i)=>({action:e.kind+(e.screen?' '+e.screen:''),view:e.visible??e.note??e.result??'',elapsedMs:e.ms,eventCount:i+1,image:undefined}));
+}
+function clickDetails(f:Attempt['frames'][number],source:Attempt['frames'][number]|undefined){
+  const click=f.click;
+  if(!click)return f.action.startsWith('{"op":"click"')?'<p>Click target unknown.</p>':'';
+  const target=click.target;
+  const landing=target?'Click target '+h(target.tag)+(target.control?' inside '+h(target.control):'')+(target.label?' · '+h(target.label):''):'Click target unknown';
+  const {before,after}=click;
+  const moved=before.sequence!==after.sequence;
+  const stale=source?.observation && source.observation.navigation.sequence!==before.sequence;
+  return '<p>Observation '+h(click.observationId)+' · ('+h(click.x)+', '+h(click.y)+') · '+landing+'. '+
+    (stale?'The browser had already navigated since this screenshot. ':'')+
+    (moved?'The click navigated from '+h(before.path)+' to '+h(after.path)+'.':'The browser stayed on '+h(before.path)+'.')+'</p>';
 }
 function frameCard(a:VisitorAttempt,index:number){
   const series=frames(a);
@@ -123,12 +135,22 @@ function frameCard(a:VisitorAttempt,index:number){
   if(!f)return '<article><h2>'+h(a.model)+'</h2><p>No browser observation was retained.</p></article>';
   const logged=a.events.slice(0,f.eventCount),units=[0,0];
   for(const e of logged)for(const change of e.changes??[])units[change.line]+=change.units;
-  const image=f.image&&(a.phase==='standalone'?'standalone/':'')+f.image;
+  const click=f.click;
+  const source=click?series.find(other=>other.observation?.id===click.observationId):undefined;
+  const imageName=source?.image??f.image;
+  const image=imageName&&(a.phase==='standalone'?'standalone/':'')+imageName;
   const available=image&&screenshotPath(image);
+  const viewport=source?.observation?.viewport;
+  const marker=click&&viewport&&Number.isInteger(click.x)&&Number.isInteger(click.y)
+    &&Number.isInteger(viewport.width)&&Number.isInteger(viewport.height)
+    &&click.x>=0&&click.y>=0&&click.x<viewport.width&&click.y<viewport.height
+    ?'<span class="click-marker" aria-hidden="true" style="left:'+100*click.x/viewport.width+'%;top:'+100*click.y/viewport.height+'%"></span>':'';
+  const picture=available?'<div class="observation-image"><img src="/screens/'+h(image)+'" alt="Browser viewport at the source observation">'+marker+'</div>':
+    a.mode==='pixels'&&(f.click||f.image||f.action.startsWith('Observation ')||!a.frames.length)?'<p>Screenshot unavailable.</p>':'';
   return '<article class="frame"><p class="eyebrow">'+h(a.origin)+' / '+h(a.mode)+'</p><h2>'+h(a.model)+'</h2><p><strong>'+h(f.action)+'</strong></p>'+
-    (available?'<img src="/screens/'+h(image)+'" alt="Browser viewport at this observation">':
-      a.mode==='pixels'&&(f.image||f.action.startsWith('Observation ')||!a.frames.length)?'<p>Screenshot unavailable.</p>':'')+
-    '<details '+(available?'':'open')+'><summary>'+(a.mode==='pixels'?'Audit text from the page':'Browser evidence')+'</summary><pre>'+h(f.view)+'</pre></details><p class="ledger">Underlying ledger · '+units.join(' / ')+' units</p><small>'+f.elapsedMs+' ms from start · frame '+(Math.max(0,Math.min(series.length-1,index))+1)+' of '+series.length+'</small></article>';
+    picture+(a.mode==='pixels'?clickDetails(f,source):'')+
+    (f.discardedActions?'<p>Discarded '+h(f.discardedActions)+' remaining '+(f.discardedActions===1?'action':'actions')+' after navigation.</p>':'')+
+    '<details '+(available?'':'open')+'><summary>'+(f.click?'Page text after the action':a.mode==='pixels'?'Audit text from the page':'Browser evidence')+'</summary><pre>'+h(f.view)+'</pre></details><p class="ledger">Underlying ledger · '+units.join(' / ')+' units</p><small>'+f.elapsedMs+' ms from start · frame '+(Math.max(0,Math.min(series.length-1,index))+1)+' of '+series.length+'</small></article>';
 }
 function frameForEvent(a:VisitorAttempt,event:number){
   if(event<0)return 0;
@@ -149,7 +171,8 @@ function sameOpening(a:VisitorAttempt,b:VisitorAttempt){
   if(a.id===b.id || a.workflow!==b.workflow || a.seed!==b.seed || a.condition!==b.condition
     || JSON.stringify(a.openingBalances)!==JSON.stringify(b.openingBalances))return false;
   if(a.phase!=='standalone')return b.phase!=='standalone';
-  return b.phase==='standalone' && a.mode===b.mode && a.maxCalls===b.maxCalls && a.protocolVersion===b.protocolVersion;
+  return b.phase==='standalone' && a.mode===b.mode && a.maxCalls===b.maxCalls && a.protocolVersion===b.protocolVersion
+    && (a.policy??'batch')===(b.policy??'batch');
 }
 export function replay(params:URLSearchParams,archive=defaultArchive){
   const rows=visitorAttempts(archive),first=rows.find(r=>r.id===(params.get('a')??'receiving-partial-1-verify'));
@@ -176,7 +199,8 @@ export function trace(id:string,archive=defaultArchive){
   const job=delivery(a.seed,a.workflow),lines=grade(a).lines;
   const document='<section><h2>'+h(job.reference)+' · '+h(job.document)+'</h2><table><thead><tr><th>Product</th><th>Ordered / paid</th><th>Requested</th><th>Posted</th></tr></thead><tbody>'+job.lines.map((l,i)=>'<tr><th>'+h(l.name)+'<small>'+h(l.sku)+'</small></th><td>'+l.ordered+'</td><td>'+l.delivered+'</td><td>'+lines[i].actual+'</td></tr>').join('')+'</tbody></table></section>';
   const stop=a.termination==='checkpoint'?'Unfinished checkpoint':a.termination;
-  return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(stop)+'</p>'+
+  return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(stop)+
+    (a.phase==='standalone'&&a.mode==='pixels'?' · '+h(a.policy??'batch'):'')+'</p>'+
     (a.termination==='checkpoint'?'<p>This is the last saved state. Later browser actions or provider usage may be unconfirmed.</p>':'')+
     decision(a)+document+jobHistory(a.priorJobs??[])+(a.openingBalances?'<p>Opening stock (Wharf / Depot) · '+a.openingBalances.map(b=>h(b.sku)+' '+b.wharf+' / '+b.depot).join(' · ')+'</p>':'')+
     '<p>'+a.actions+' actions · '+(a.durationMs/1000).toFixed(1)+' seconds</p>'+accountingDetails(a)+

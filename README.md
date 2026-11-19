@@ -1,5 +1,7 @@
 # cue-bench
 
+[Play the failed delivery](https://k0nkupa369.github.io/cue-bench/) or [replay the recorded 13/0 outcome](https://k0nkupa369.github.io/cue-bench/#development-1-partial-mini-controls-3). The public case runs in your browser with fictional stock and no API key.
+
 **Retail operations workbench:** run `npm start` to try receiving, inventory transfers and refunds, compare browser recordings and explore research results. [Research guide](retail/README.md).
 
 An order form times out. Did the order save? This browser-agent benchmark checks whether an operator looks up the order before deciding to submit again.

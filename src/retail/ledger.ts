@@ -1,4 +1,3 @@
-import {randomUUID} from 'node:crypto';
 export const conditions = ['clean','saved','lost','partial','stale','conflict'] as const;
 export type Condition = typeof conditions[number];
 export type Pair = [number,number];
@@ -52,7 +51,7 @@ export class Desk {
   readonly started=Date.now();
   events:Event[]=[];
   log(event:Omit<Event,'ms'>){this.events.push({...event,ms:Date.now()-this.started});}
-  readonly id=randomUUID();
+  readonly id=crypto.randomUUID();
   readonly job:ReturnType<typeof delivery>;
   readonly condition:Condition;
   readonly entries:Entry[]=[];

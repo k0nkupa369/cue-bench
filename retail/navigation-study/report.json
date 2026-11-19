@@ -1,0 +1,644 @@
+{
+  "model": "gpt-5.4-mini-2026-03-17",
+  "capUsd": 25,
+  "boundUsd": 0.0717474,
+  "meteredUsd": 0.0717474,
+  "pairs": 12,
+  "plannedPairs": 12,
+  "effects": [
+    {
+      "seed": 21,
+      "condition": "clean",
+      "repeat": 1,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": 1.395,
+      "calls": 1
+    },
+    {
+      "seed": 21,
+      "condition": "partial",
+      "repeat": 1,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": 0.21300000000000008,
+      "calls": 0
+    },
+    {
+      "seed": 22,
+      "condition": "clean",
+      "repeat": 1,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": -0.42599999999999993,
+      "calls": 0
+    },
+    {
+      "seed": 22,
+      "condition": "partial",
+      "repeat": 1,
+      "prematureFinish": -1,
+      "complete": 0,
+      "posted": 1,
+      "excess": 13,
+      "seconds": 11.041,
+      "calls": 6
+    },
+    {
+      "seed": 23,
+      "condition": "clean",
+      "repeat": 1,
+      "prematureFinish": -1,
+      "complete": 1,
+      "posted": 1,
+      "excess": 0,
+      "seconds": 8.636,
+      "calls": 5
+    },
+    {
+      "seed": 23,
+      "condition": "partial",
+      "repeat": 1,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": 0.39800000000000013,
+      "calls": 0
+    },
+    {
+      "seed": 21,
+      "condition": "clean",
+      "repeat": 2,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": 0.5020000000000002,
+      "calls": 0
+    },
+    {
+      "seed": 21,
+      "condition": "partial",
+      "repeat": 2,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": -0.3599999999999999,
+      "calls": 0
+    },
+    {
+      "seed": 22,
+      "condition": "clean",
+      "repeat": 2,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": 3.0220000000000002,
+      "calls": 2
+    },
+    {
+      "seed": 22,
+      "condition": "partial",
+      "repeat": 2,
+      "prematureFinish": -1,
+      "complete": 0,
+      "posted": 1,
+      "excess": 0,
+      "seconds": 9.661000000000001,
+      "calls": 6
+    },
+    {
+      "seed": 23,
+      "condition": "clean",
+      "repeat": 2,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": 0.581,
+      "calls": 0
+    },
+    {
+      "seed": 23,
+      "condition": "partial",
+      "repeat": 2,
+      "prematureFinish": 0,
+      "complete": 0,
+      "posted": 0,
+      "excess": 0,
+      "seconds": 4.639,
+      "calls": 2
+    }
+  ],
+  "rows": [
+    {
+      "key": "calibration",
+      "policy": "batch",
+      "seed": 91,
+      "condition": "clean",
+      "repeat": 0,
+      "result": {
+        "id": "standalone-openai-2062d981-b843-41dd-915a-ca3b3b3cb140",
+        "bound": 0.0015495,
+        "metered": 0.0015495,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 3.865,
+        "calls": 1
+      }
+    },
+    {
+      "key": "21-clean-1-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 21,
+      "condition": "clean",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-e81f2fa2-0e82-4351-8f51-682b8e79864b",
+        "bound": 0.0026835,
+        "metered": 0.0026835,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 3.426,
+        "calls": 2
+      }
+    },
+    {
+      "key": "21-clean-1-batch",
+      "policy": "batch",
+      "seed": 21,
+      "condition": "clean",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-92b9b31f-922e-4ebb-8c09-1bad4e05bc15",
+        "bound": 0.0007727999999999999,
+        "metered": 0.0007727999999999999,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.031,
+        "calls": 1
+      }
+    },
+    {
+      "key": "21-partial-1-batch",
+      "policy": "batch",
+      "seed": 21,
+      "condition": "partial",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-b988ea94-00a8-4243-9799-6a96c8ce8693",
+        "bound": 0.0009258,
+        "metered": 0.0009258,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.211,
+        "calls": 1
+      }
+    },
+    {
+      "key": "21-partial-1-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 21,
+      "condition": "partial",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-a26700dd-6032-4372-863d-c860f9c6abe9",
+        "bound": 0.0007053,
+        "metered": 0.0007053,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.424,
+        "calls": 1
+      }
+    },
+    {
+      "key": "22-clean-1-batch",
+      "policy": "batch",
+      "seed": 22,
+      "condition": "clean",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-c1ed3d85-7d15-412e-a46d-f5a9e9dd0fed",
+        "bound": 0.0016215,
+        "metered": 0.0016215,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.375,
+        "calls": 1
+      }
+    },
+    {
+      "key": "22-clean-1-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 22,
+      "condition": "clean",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-1ba88b90-1691-4e97-802c-8c6c5cbf20e2",
+        "bound": 0.0007233,
+        "metered": 0.0007233,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 1.949,
+        "calls": 1
+      }
+    },
+    {
+      "key": "22-partial-1-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 22,
+      "condition": "partial",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-0a2da5bd-2bd4-4072-9d36-6516c78588d1",
+        "bound": 0.012547800000000001,
+        "metered": 0.012547800000000001,
+        "unknown": 0,
+        "termination": "limit",
+        "complete": false,
+        "prematureFinish": false,
+        "posted": true,
+        "excess": 13,
+        "seconds": 15.354,
+        "calls": 8
+      }
+    },
+    {
+      "key": "22-partial-1-batch",
+      "policy": "batch",
+      "seed": 22,
+      "condition": "partial",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-e410c7b3-5e8e-46bc-937e-35b191b995d3",
+        "bound": 0.0023718,
+        "metered": 0.0023718,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 4.313,
+        "calls": 2
+      }
+    },
+    {
+      "key": "23-clean-1-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 23,
+      "condition": "clean",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-a51460c5-f9bd-4986-8b1d-1657ab063f70",
+        "bound": 0.010935,
+        "metered": 0.010935,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": true,
+        "prematureFinish": false,
+        "posted": true,
+        "excess": 0,
+        "seconds": 12.257,
+        "calls": 7
+      }
+    },
+    {
+      "key": "23-clean-1-batch",
+      "policy": "batch",
+      "seed": 23,
+      "condition": "clean",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-deaf382b-0d1f-4a2a-bddf-701d46888b93",
+        "bound": 0.0028710000000000003,
+        "metered": 0.0028710000000000003,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 3.621,
+        "calls": 2
+      }
+    },
+    {
+      "key": "23-partial-1-batch",
+      "policy": "batch",
+      "seed": 23,
+      "condition": "partial",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-518a5a1b-7731-4a3c-a9fa-5e9f78839c60",
+        "bound": 0.0007233,
+        "metered": 0.0007233,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 1.779,
+        "calls": 1
+      }
+    },
+    {
+      "key": "23-partial-1-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 23,
+      "condition": "partial",
+      "repeat": 1,
+      "result": {
+        "id": "standalone-openai-415bcb00-79de-404d-876e-5e9b2f3452df",
+        "bound": 0.0008627999999999999,
+        "metered": 0.0008627999999999999,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.177,
+        "calls": 1
+      }
+    },
+    {
+      "key": "21-clean-2-batch",
+      "policy": "batch",
+      "seed": 21,
+      "condition": "clean",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-eace30c0-7dad-493f-9878-34f592247aab",
+        "bound": 0.0009258,
+        "metered": 0.0009258,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 1.876,
+        "calls": 1
+      }
+    },
+    {
+      "key": "21-clean-2-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 21,
+      "condition": "clean",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-59281046-4dda-48ac-ba7e-b0532d64af85",
+        "bound": 0.0009213,
+        "metered": 0.0009213,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.378,
+        "calls": 1
+      }
+    },
+    {
+      "key": "21-partial-2-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 21,
+      "condition": "partial",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-b432352d-eda6-448a-8171-31310ce80cd1",
+        "bound": 0.0005972999999999999,
+        "metered": 0.0005972999999999999,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 1.935,
+        "calls": 1
+      }
+    },
+    {
+      "key": "21-partial-2-batch",
+      "policy": "batch",
+      "seed": 21,
+      "condition": "partial",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-3624f175-6569-44f6-b18e-16d685170a9f",
+        "bound": 0.0008897999999999999,
+        "metered": 0.0008897999999999999,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.295,
+        "calls": 1
+      }
+    },
+    {
+      "key": "22-clean-2-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 22,
+      "condition": "clean",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-1eda48a0-1e08-45fd-9ab5-78271e44546b",
+        "bound": 0.0044145,
+        "metered": 0.0044145,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 5.557,
+        "calls": 3
+      }
+    },
+    {
+      "key": "22-clean-2-batch",
+      "policy": "batch",
+      "seed": 22,
+      "condition": "clean",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-6c69ade8-849f-45f9-8130-31153d888b3e",
+        "bound": 0.0009258,
+        "metered": 0.0009258,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.535,
+        "calls": 1
+      }
+    },
+    {
+      "key": "22-partial-2-batch",
+      "policy": "batch",
+      "seed": 22,
+      "condition": "partial",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-94a944dc-974d-4fac-ac17-f2eff503c4fc",
+        "bound": 0.00315075,
+        "metered": 0.00315075,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 4.37,
+        "calls": 2
+      }
+    },
+    {
+      "key": "22-partial-2-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 22,
+      "condition": "partial",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-60c61c63-e7f6-4c79-95c7-3f429a2e5b87",
+        "bound": 0.011941799999999999,
+        "metered": 0.011941799999999999,
+        "unknown": 0,
+        "termination": "limit",
+        "complete": false,
+        "prematureFinish": false,
+        "posted": true,
+        "excess": 0,
+        "seconds": 14.031,
+        "calls": 8
+      }
+    },
+    {
+      "key": "23-clean-2-batch",
+      "policy": "batch",
+      "seed": 23,
+      "condition": "clean",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-7f74c0b4-63ca-4833-85b5-fd41c29dcd7b",
+        "bound": 0.00199905,
+        "metered": 0.00199905,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 3.853,
+        "calls": 2
+      }
+    },
+    {
+      "key": "23-clean-2-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 23,
+      "condition": "clean",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-fafc6b33-271d-448f-ae31-a01c6c6836be",
+        "bound": 0.00228255,
+        "metered": 0.00228255,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 4.434,
+        "calls": 2
+      }
+    },
+    {
+      "key": "23-partial-2-refresh-after-navigation",
+      "policy": "refresh-after-navigation",
+      "seed": 23,
+      "condition": "partial",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-b6884ef1-0039-42f1-8522-54007135f17b",
+        "bound": 0.0035965499999999996,
+        "metered": 0.0035965499999999996,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 6.775,
+        "calls": 3
+      }
+    },
+    {
+      "key": "23-partial-2-batch",
+      "policy": "batch",
+      "seed": 23,
+      "condition": "partial",
+      "repeat": 2,
+      "result": {
+        "id": "standalone-openai-dac0a83b-7c7a-4171-b359-7145eda5c09d",
+        "bound": 0.0008087999999999999,
+        "metered": 0.0008087999999999999,
+        "unknown": 0,
+        "termination": "closed",
+        "complete": false,
+        "prematureFinish": true,
+        "posted": false,
+        "excess": 0,
+        "seconds": 2.136,
+        "calls": 1
+      }
+    }
+  ]
+}

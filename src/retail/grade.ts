@@ -1,11 +1,22 @@
 import {delivery,type Desk,type Condition,type Workflow,type Entry,type Event,type PriorJob,type LocationBalance} from './ledger.ts';
 
+type Navigation = {sequence:number,path:string};
+export type PixelObservation = {id:number,navigation:Navigation,viewport:{width:number,height:number}};
+export type ClickEvidence = {
+  observationId:number,x:number,y:number,target:{tag:string,label:string,control?:string}|null,
+  before:Navigation,after:Navigation
+};
+type Frame = {
+  action:string,view:string,elapsedMs:number,image?:string,eventCount:number,
+  observation?:PixelObservation,click?:ClickEvidence,discardedActions?:number
+};
+
 export type Attempt={
   priorJobs?:PriorJob[],openingBalances?:LocationBalance[],
   version:1,id:string,workflow:Workflow,condition:Condition,seed:number,origin:'scripted'|'human'|'openai',
   model:string,mode:'manual'|'controls'|'pixels',phase:'calibration'|'development'|'heldout',
   termination:'closed'|'limit'|'interrupted',durationMs:number,actions:number,tokens:number,costUsd:number,
-  events:Event[],entries:Entry[],frames:{action:string,view:string,elapsedMs:number,image?:string,eventCount:number}[]
+  events:Event[],entries:Entry[],frames:Frame[]
 };
 export function capture(d:Desk):Attempt{
   const shift=d.priorJobs.length?{priorJobs:d.priorJobs,openingBalances:d.openingBalances()}:{};

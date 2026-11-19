@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Recover a retail receipt after a timeout and compare your decision with a recorded browser-agent run.">
+  <title>The partial receipt · Cue Bench</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./case.css">
+  <script type="module" src="./retail/static/case.js"></script>
+</head>
+<body>
+  <a class="skip" href="#case">Skip to the case</a>
+  <header class="bar">
+    <div class="wrap">
+      <span class="brand">Cue Bench</span>
+      <a href="#development-1-partial-mini-controls-3">Recorded replay <span aria-hidden="true">↓</span></a>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="intro" id="case" aria-labelledby="title" tabindex="-1">
+      <p class="eyebrow">Retail operations · Wharf receiving</p>
+      <h1 id="title">The partial receipt</h1>
+      <p>Two lines of field jackets arrived at Wharf. Receive the delivered quantities against <span data-reference></span> and leave the rest of the order open.</p>
+    </section>
+    <noscript><p>Enable JavaScript to play the receiving case and step through the replay.</p></noscript>
+    <div class="desk">
+      <aside class="slip" aria-labelledby="delivery-title">
+        <p class="eyebrow" data-document></p>
+        <h2 id="delivery-title">Delivery note</h2>
+        <table aria-label="Delivered quantities">
+          <thead><tr><th scope="col">Product</th><th scope="col">Delivered</th></tr></thead>
+          <tbody id="delivered"></tbody>
+        </table>
+      </aside>
+
+      <section class="workbench" aria-labelledby="workbench-title">
+        <header class="workbench-head">
+          <h2 id="workbench-title">Receiving desk</h2>
+          <span class="reference" data-reference></span>
+        </header>
+        <div id="play" hidden>
+          <nav class="screens" aria-label="Receiving records">
+            <button type="button" aria-pressed="true" aria-controls="post" data-screen="post">Post receipt</button>
+            <button type="button" aria-pressed="false" aria-controls="journal" data-screen="journal">Receipt journal</button>
+            <button type="button" aria-pressed="false" aria-controls="stock" data-screen="stock">Inventory</button>
+            <button type="button" aria-pressed="false" aria-controls="job" data-screen="job">Purchase order</button>
+          </nav>
+          <p id="message" class="message" role="status"></p>
+          <div class="workbench-body">
+            <section id="post" aria-labelledby="post-title">
+              <h3 id="post-title">Post receipt</h3>
+              <form id="receipt">
+                <div class="quantities">
+                  <label><span id="line-0"></span><input name="ink" id="ink" type="number" min="0" max="999" step="1" inputmode="numeric" required></label>
+                  <label><span id="line-1"></span><input name="moss" id="moss" type="number" min="0" max="999" step="1" inputmode="numeric" required></label>
+                </div>
+                <button class="primary" type="submit">Post units</button>
+              </form>
+            </section>
+            <section id="journal" aria-labelledby="journal-title" hidden>
+              <h3 id="journal-title">Receipt journal</h3>
+              <table aria-label="Receipt journal">
+                <thead><tr><th scope="col">Product</th><th scope="col">Posted units</th></tr></thead>
+                <tbody id="posted"></tbody>
+              </table>
+            </section>
+            <section id="stock" aria-labelledby="stock-title" hidden>
+              <h3 id="stock-title">Wharf inventory</h3>
+              <table aria-label="Wharf inventory">
+                <thead><tr><th scope="col">Product</th><th scope="col">Opening</th><th scope="col">On hand</th></tr></thead>
+                <tbody id="balances"></tbody>
+              </table>
+            </section>
+            <section id="job" aria-labelledby="order-title" hidden>
+              <h3 id="order-title">Purchase order</h3>
+              <table aria-label="Purchase order">
+                <thead><tr><th scope="col">Product</th><th scope="col">Ordered</th><th scope="col">Open</th></tr></thead>
+                <tbody id="ordered"></tbody>
+              </table>
+            </section>
+          </div>
+          <footer class="workbench-foot">
+            <button type="button" id="finish">Close job</button>
+          </footer>
+        </div>
+
+        <section class="debrief workbench-body" id="debrief" aria-labelledby="outcome" hidden>
+          <p class="eyebrow">Job closed</p>
+          <h3 id="outcome" tabindex="-1"></h3>
+          <p id="outcome-note"></p>
+          <table aria-label="Closing receipt totals">
+            <thead><tr><th scope="col">Product</th><th scope="col">Delivered</th><th scope="col">Posted</th></tr></thead>
+            <tbody id="final-counts"></tbody>
+          </table>
+          <div class="debrief-actions">
+            <a class="primary" href="#development-1-partial-mini-controls-3">Compare with the recorded run</a>
+            <button type="button" id="restart">Start again</button>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <section class="recording" id="development-1-partial-mini-controls-3" aria-labelledby="recording-title" tabindex="-1">
+      <header class="recording-head">
+        <p class="eyebrow">Published receiving study</p>
+        <h2 id="recording-title">Replay a model’s decisions</h2>
+        <p id="recorded-model"></p>
+      </header>
+      <div class="replay-grid">
+        <ol id="replay-controls" aria-label="Recorded decisions"></ol>
+        <section class="replay-card" aria-labelledby="step-title">
+          <p class="eyebrow" id="step-time"></p>
+          <h3 id="step-title" aria-live="polite">Loading recording…</h3>
+          <p id="step-detail"></p>
+          <table aria-label="Ledger after this decision" id="replay-ledger" hidden>
+            <thead><tr><th scope="col">Product</th><th scope="col">Delivered</th><th scope="col">Posted</th></tr></thead>
+            <tbody id="replay-counts"></tbody>
+          </table>
+          <details id="replay-observation" hidden>
+            <summary>Read the recorded observation</summary>
+            <pre id="observation-text"></pre>
+          </details>
+        </section>
+      </div>
+      <footer class="replay-footer">
+        <a href="./recording.json">Read the original trace</a>
+        <a href="#case">Back to the case <span aria-hidden="true">↑</span></a>
+      </footer>
+    </section>
+  </main>
+  <footer class="site-foot wrap">
+    <p>Fictional retail data. Your choices stay in this tab until you reload.</p>
+    <a href="experiment.html">Explore the screenshot refresh experiment</a>
+    <a href="https://github.com/k0nkupa369/cue-bench/blob/main/retail/FINDINGS.md">Original study findings</a>
+  </footer>
+</body>
+</html>
