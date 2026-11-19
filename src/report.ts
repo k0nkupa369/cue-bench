@@ -59,6 +59,7 @@ if (args[0] === 'freeze') {
     console.log(result.configuration ?? 'Configuration pending. All nine slots are unrun.');
     for (const r of result.rows) {
       console.log([r.id,r.status,r.origin,r.outcome,r.recovery].map(v=>v ?? '—').join('  '));
+      if (!('recording' in r)) continue;
       if (r.replaces) console.log('  Replaces '+r.replaces);
       if (r.previous) console.log('  Previous checker '+r.previous.checkerVersion+' '+r.previous.outcome+'/'+r.previous.recovery+
         ' → checker '+r.checkerVersion+' '+r.outcome+'/'+r.recovery+'. '+r.previous.reason);
