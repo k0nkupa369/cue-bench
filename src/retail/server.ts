@@ -3,13 +3,14 @@ import {randomUUID,randomInt} from 'node:crypto';
 import {home,results,replay,trace,reveal,screenshot} from './portfolio.ts';
 import {capture} from './grade.ts';
 import {resolve} from 'node:path';
-import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {readFileSync,mkdirSync,writeFileSync,linkSync,rmSync} from 'node:fs';
 import {once} from 'node:events';
 import {pathToFileURL} from 'node:url';
 import {Desk,conditions,workflows,type Workflow,type Condition,type Screen} from './ledger.ts';
 import {page,workspace,escape} from './views.ts';
 
 export async function startRetail(options:{seed?:number,condition?:Condition,workflow?:Workflow,humanArchive?:string}={}) {
+  const archive=options.humanArchive?resolve(options.humanArchive):undefined;
   const sessions=new Map<string,Desk>();
   const server=createServer(async(req,res)=>{
     const url=new URL(req.url??'/','http://localhost');
@@ -21,14 +22,14 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
     try{
       if(!options.humanArchive && ['/replays','/results','/trace','/portfolio.css','/screens'].some(path=>url.pathname===path||url.pathname.startsWith(path+'/')))return send(404,'Not available in an operator session');
       if(req.method==='GET' && url.pathname==='/portfolio.css')return send(200,readFileSync(new URL('../../retail/portfolio.css',import.meta.url),'utf8'),'text/css');
-      if(req.method==='GET' && url.pathname==='/replays')return send(200,replay(url.searchParams));
-      if(req.method==='GET' && url.pathname==='/results')return send(200,results(url.searchParams));
-      if(req.method==='GET' && url.pathname==='/trace')return send(200,trace(url.searchParams.get('id')??''));
+      if(req.method==='GET' && url.pathname==='/replays')return send(200,replay(url.searchParams,archive));
+      if(req.method==='GET' && url.pathname==='/results')return send(200,results(url.searchParams,archive));
+      if(req.method==='GET' && url.pathname==='/trace')return send(200,trace(url.searchParams.get('id')??'',archive));
       if(req.method==='GET' && url.pathname.startsWith('/screens/')){
         const bytes=screenshot(url.pathname.slice(9));return bytes?res.writeHead(200,{'Content-Type':'image/jpeg'}).end(bytes):send(404,'Missing screenshot');
       }
       if(req.method==='GET' && url.pathname==='/style.css') return send(200,readFileSync(new URL('../../retail/style.css',import.meta.url),'utf8'),'text/css');
-      if(req.method==='GET' && url.pathname==='/') return send(200,options.humanArchive?home():page('<h1>Retail workbench</h1>'+workflows.map(w=>'<form method="post" action="/start?workflow='+w+'"><button>Start '+w+' job</button></form>').join(''),'Retail workbench'));
+      if(req.method==='GET' && url.pathname==='/') return send(200,options.humanArchive?home(archive):page('<h1>Retail workbench</h1>'+workflows.map(w=>'<form method="post" action="/start?workflow='+w+'"><button>Start '+w+' job</button></form>').join(''),'Retail workbench'));
       if(req.method==='POST' && req.headers.origin!=='http://'+req.headers.host) return send(403,'Origin rejected');
       if(req.method==='POST' && url.pathname==='/start'){
         const choice=url.searchParams.get('workflow')??'receiving';
@@ -86,9 +87,18 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
       }else if(url.pathname!=='/finish') return send(404,'Unknown action');
       d.log({kind:d.note?'handoff':'finish',note:d.note,citation});
       d.finished=true;
-      if(options.humanArchive){
-        mkdirSync(options.humanArchive,{recursive:true});
-        writeFileSync(resolve(options.humanArchive,d.id+'.json'),JSON.stringify(capture(d))+'\n',{flag:'wx'});
+      if(archive){
+        const pending=resolve(archive,d.id+'.'+randomUUID()+'.partial');
+        try{
+          mkdirSync(archive,{recursive:true});
+          writeFileSync(pending,JSON.stringify(capture(d))+'\n',{flag:'wx'});
+          linkSync(pending,resolve(archive,d.id+'.json'));
+        }catch{
+          d.finished=false;d.events.pop();d.note='';
+          return send(503,page('<h1>Job could not be saved</h1><a href="/desk">Return to the job and retry</a>','Archive unavailable'));
+        }finally{
+          try{rmSync(pending,{force:true});}catch{ /* Only complete .json files are visible to the archive reader. */ }
+        }
       }
       return redirect('/desk');
     }catch(e){return send(400,escape(e instanceof Error?e.message:'Invalid request'));}

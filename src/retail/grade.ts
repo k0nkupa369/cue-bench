@@ -8,7 +8,7 @@ export type Attempt={
   events:Event[],entries:Entry[],frames:{action:string,view:string,elapsedMs:number,image?:string,eventCount:number}[]
 };
 export function capture(d:Desk):Attempt{
-  const shift=d.priorJobs.length?{priorJobs:d.priorJobs,openingBalances:d.job.lines.map(l=>({sku:l.sku,wharf:l.opening,depot:l.destinationOpening}))}:{};
+  const shift=d.priorJobs.length?{priorJobs:d.priorJobs,openingBalances:d.openingBalances()}:{};
   return {...shift,version:1,id:d.id,workflow:d.workflow,condition:d.condition,seed:d.seed,origin:'human',model:'operator',
     mode:'manual',phase:'calibration',termination:d.finished?'closed':'interrupted',durationMs:Date.now()-d.started,
     actions:d.events.length,tokens:0,costUsd:0,events:structuredClone(d.events),entries:structuredClone(d.entries),frames:[]};

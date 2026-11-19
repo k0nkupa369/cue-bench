@@ -26,8 +26,11 @@ export class Desk {
     if(!this.finished || this.note || (this.condition==='conflict' && this.posts)) return;
     return this.workflow==='receiving'?'transfer':this.workflow==='transfer'?'refund':undefined;
   }
+  openingBalances():LocationBalance[] {
+    return this.job.lines.map(l=>({sku:l.sku,wharf:l.opening,depot:l.destinationOpening}));
+  }
   balances():LocationBalance[] {
-    const balances=this.job.lines.map(l=>({sku:l.sku,wharf:l.opening,depot:l.destinationOpening}));
+    const balances=this.openingBalances();
     for(const entry of this.entries){
       const line=balances[entry.line];
       line.wharf+=this.workflow==='receiving'?entry.destinationDelta:entry.sourceDelta;

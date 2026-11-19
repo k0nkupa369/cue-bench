@@ -9,11 +9,11 @@ import {escape as h,page,jobHistory} from './views.ts';
 
 const dir=fileURLToPath(new URL('../../retail/',import.meta.url));
 const studyFolder=existsSync(resolve(dir,'published/manifest.json'))?'published':'local/study';
-const paths=['examples',studyFolder+'/attempts','local/human'];
+const defaultArchive=resolve(dir,'local/human');
 const cache=new Map<string,Attempt>();
-export function attempts(){
+export function attempts(archive=defaultArchive){
   const rows=new Map<string,Attempt>();
-  for(const path of paths){
+  for(const path of ['examples',studyFolder+'/attempts',archive]){
     const folder=resolve(dir,path);
     if(!existsSync(folder))continue;
     for(const name of readdirSync(folder).filter(f=>f.endsWith('.json'))){
@@ -45,8 +45,8 @@ function featuredPair(rows:Attempt[]){
   }
   return differentHarm;
 }
-export function home(){
-  const runs=attempts(),paid=runs.filter(r=>r.origin==='openai');
+export function home(archive=defaultArchive){
+  const runs=attempts(archive),paid=runs.filter(r=>r.origin==='openai');
   const pair=featuredPair(runs);
   const replayPath=pair?url('/replays',{a:pair[0].id,b:pair[1].id}):'/replays';
   const comparison=pair?'Two live models reached the same partial receipt. Their attempts left '+grade(pair[0]).excessUnits+' and '+grade(pair[1]).excessUnits+' excess units. Compare the decisions behind their scores.':'Follow the checked and blind scripted retries from the same partial receipt. Inspect the stock change at each step.';
@@ -71,8 +71,8 @@ function traceRow(a:Attempt){
   const g=grade(a);
   return '<tr><th>'+link(url('/trace',{id:a.id}),a.id)+'</th><td>'+h(a.origin)+'</td><td>'+h(a.termination)+'</td><td>'+(g.complete?'Pass':'Fail')+'</td><td>'+(g.recovery===null?'—':g.recovery?'Pass':'Fail')+'</td><td>'+g.excessUnits+'</td></tr>';
 }
-export function results(params:URLSearchParams){
-  const rows=attempts();
+export function results(params:URLSearchParams,archive=defaultArchive){
+  const rows=attempts(archive);
   const fields=['workflow','condition','origin','model','mode','phase'] as const;
   const filtered=rows.filter(r=>fields.every(k=>!params.get(k)||r[k]===params.get(k)));
   const cohorts=['openai','human','scripted'].map(origin=>{
@@ -127,12 +127,12 @@ function sameOpening(a:Attempt,b:Attempt){
   return a.id!==b.id && a.workflow===b.workflow && a.seed===b.seed && a.condition===b.condition
     && JSON.stringify(a.openingBalances)===JSON.stringify(b.openingBalances);
 }
-export function replay(params:URLSearchParams){
-  const rows=attempts(),first=rows.find(r=>r.id===(params.get('a')??'receiving-partial-1-verify'));
+export function replay(params:URLSearchParams,archive=defaultArchive){
+  const rows=attempts(archive),first=rows.find(r=>r.id===(params.get('a')??'receiving-partial-1-verify'));
   if(!first)return shell('<h1>Attempt unavailable</h1>','Replay');
   const peers=rows.filter(r=>sameOpening(first,r));
   const second=peers.find(r=>r.id===params.get('b'))??peers.find(r=>r.origin==='openai' && r.model!==first.model)??peers.find(r=>r.model!==first.model)??peers[0];
-  if(!second)return trace(first.id);
+  if(!second)return trace(first.id,archive);
   const faults=[first,second].map(a=>a.events.findIndex(e=>e.result==='timeout'));
   const diverged=decisionAnchors(first,second);
   const at=params.get('at')==='decision' && diverged?'decision':'fault';
@@ -144,8 +144,8 @@ export function replay(params:URLSearchParams){
     '<form class="filters"><input type="hidden" name="a" value="'+h(first.id)+'"><label>Compare with<select name="b">'+peers.map(r=>'<option '+(r.id===second.id?'selected ':'')+'value="'+h(r.id)+'">'+h(r.id)+'</option>').join('')+'</select></label><button>Compare</button></form>'+
     '<div class="transport">'+(step>min?nav(step-1,'← Previous'):'<span>Start</span>')+'<strong>Step '+step+'</strong>'+link(url('/replays',{a:first.id,b:second.id}),'Align at fault')+(diverged?link(url('/replays',{a:first.id,b:second.id,at:'decision'}),'First different job event'):'')+(step<max?nav(step+1,'Next →'):'<span>End</span>')+'</div><div class="compare">'+frameCard(first,left+step)+frameCard(second,right+step)+'</div><p>'+link(url('/trace',{id:first.id}),'Full first attempt')+' · '+link(url('/trace',{id:second.id}),'Full second attempt')+'</p>','Replay room');
 }
-export function trace(id:string){
-  const all=attempts();
+export function trace(id:string,archive=defaultArchive){
+  const all=attempts(archive);
   const a=all.find(r=>r.id===id);
   if(!a)return shell('<h1>Attempt unavailable</h1>','Attempt');
   return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(a.termination)+'</p>'+decision(a)+jobHistory(a.priorJobs??[])+(a.openingBalances?'<p>Opening stock (Wharf / Depot) · '+a.openingBalances.map(b=>h(b.sku)+' '+b.wharf+' / '+b.depot).join(' · ')+'</p>':'')+
