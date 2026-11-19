@@ -4,6 +4,20 @@ Run `npm ci --ignore-scripts`, then `npm start`. Open the loopback URL printed i
 
 [Read the measured findings](FINDINGS.md) from the 172-attempt receiving study. The collection source is pinned at `1efbc2f`.
 
+## Play the partial receipt
+
+Run `npm ci --ignore-scripts` and `npm run pages:build`. Serve the generated site from the repository subpath.
+
+```sh
+python3 -m http.server 4173 --bind 127.0.0.1 --directory .site
+```
+
+Open [the case](http://localhost:4173/cue-bench/) or [the recorded run](http://localhost:4173/cue-bench/#development-1-partial-mini-controls-3). Post the delivery, decide how to resolve the timeout, then close the job. The published replay follows GPT-5.4 mini through the same partial receipt. The raw recording is available from the replay. Visitor choices live in the current browser tab and reset on reload.
+
+To check both the correct recovery and the duplicate receipt in desktop and mobile Chromium, run `npx playwright install chromium`, then `npm run pages:check`. Set `CHROMIUM_PATH` to an existing Chrome or Chromium executable to use that browser.
+
+To publish after review, select **GitHub Actions** under the repository’s Pages settings and run **Publish playable receipt** from the default branch. The workflow uploads `.site/cue-bench`, which contains the case and its single published recording. [GitHub Pages workflow setup](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+
 ## Try the work
 
 Open the delivery note, compare it with the purchase order and post the delivered quantities. A timeout can hide a saved, lost or partial write. Inventory can lag the journal; the conflict case gives two independently visible, inconsistent records. If they cannot be reconciled, cite the affected product and both quantities in a supervisor handoff. Finish the job to reveal its condition and underlying ledger.
@@ -25,6 +39,10 @@ Claude accepts a base64 image in a Messages request and can return a decision co
 For a model comparison, select the same workflow, seed, condition, interface and call limit. Record the requested and returned model IDs and keep interrupted attempts in the denominator. Open the results explorer and filter the phase to **standalone** to inspect the local traces. The trace shows provider-reported usage. Standalone runs do not estimate dollar cost. If the process stops, open its unfinished checkpoint in Results to see the last saved observation and receipt. The last request or action can be unconfirmed. Starting another run creates a new ID and can incur another charge.
 
 The published 172-attempt study covers its original OpenAI model snapshots only.
+
+### Audit screenshot actions
+
+New standalone screenshot traces overlay each click on its source observation. The trace identifies the element hit at browser dispatch and whether navigation intervened. Old traces show an unknown target where this evidence was never collected. For standalone pixel runs, `--policy batch` executes the queued actions. Use `--policy refresh-after-navigation` to end the batch at navigation, including a same-URL form submission. [Paired experiment](EXPERIMENT.md)
 
 ## Experiment design
 

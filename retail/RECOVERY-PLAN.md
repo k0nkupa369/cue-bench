@@ -11,3 +11,5 @@ A visitor receives 12 ink and 8 moss jackets, sees a timeout, checks the journal
 Use one review branch with independently verifiable changes. Open a PR after end-to-end verification. Deployment and paid collection require a hosting decision and a new spend limit respectively. Unit tests and Jest are excluded by project instruction.
 
 **Execution decision.** Deploy the public GitHub Pages case after passing CI. Use only OpenAI for the new paid experiment, with a US$25 total cap. Claude and Gemini remain available for a separately authorized replication.
+
+**Local acceptance.** Desktop keyboard and mobile touch exercised successful recovery, a duplicate receipt and the recorded replay. Chromium confirmed the dispatch marker and a new observation after same-URL submission. The new study reconciled all 25 OpenAI attempts and 12 pairs. [Measured results](navigation-study/README.md)

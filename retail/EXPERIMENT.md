@@ -2,6 +2,8 @@
 
 This pilot compares two screenshot policies on the same receiving desk. The control executes up to four requested actions per observation. The treatment discards the remainder of a batch when navigation occurs and obtains a new observation. Both use the same screenshot, decision prompt, viewport and action vocabulary. Any discarded actions consume no browser action. The next observation costs an API call.
 
+[Read the results](navigation-study/README.md) or run `node src/retail/navigation-experiment.ts verify` to audit the archived evidence offline.
+
 ## Frozen design
 
 Use GPT-5.4 mini snapshot 2026-03-17 on standard processing. Run one calibration outside the scored series. Compare both policies on seeds 21, 22 and 23, clean and partial receipt cases, and two repetitions. Alternate policy order. Each attempt has at most eight provider calls, 40 actions and four minutes. Each scheduled slot is claimed once. A completed but incorrect job is evidence.
