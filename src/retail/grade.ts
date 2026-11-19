@@ -13,7 +13,7 @@ export function capture(d:Desk):Attempt{
     mode:'manual',phase:'calibration',termination:d.finished?'closed':'interrupted',durationMs:Date.now()-d.started,
     actions:d.events.length,tokens:0,costUsd:0,events:structuredClone(d.events),entries:structuredClone(d.entries),frames:[]};
 }
-export function grade(a:Attempt){
+export function grade(a:Pick<Attempt,'seed'|'workflow'|'condition'|'entries'|'events'> & {termination:Attempt['termination']|'checkpoint'}){
   const job=delivery(a.seed,a.workflow);
   const lines=job.lines.map((line,i)=>{
     const entries=a.entries.filter(e=>e.line===i);

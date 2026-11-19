@@ -16,6 +16,16 @@ The replay room aligns matched recordings on the first timeout. The underlying l
 
 To regenerate the 36 scripted calibration recordings with installed Chromium, run `npx playwright install chromium`, then `node src/retail/calibrate.ts`. An existing Chrome executable can be selected with `CHROMIUM_PATH`. Regeneration changes recording timestamps. Read the checked-in examples without regeneration using `npm run research:report`.
 
+## How provider runs work
+
+Cue-bench owns the browser. On each turn the provider receives the same job instructions and either numbered controls or a screenshot. The model proposes a short batch of actions. Cue-bench validates the response, drives Chromium and records the resulting ledger. The provider never receives the grader or the hidden fault condition.
+
+Claude accepts a base64 image in a Messages request and can return a decision constrained by a JSON schema. Gemini accepts inline image data and supports schema-constrained JSON in its generation configuration. This keeps the actions and grader comparable across providers. A model can still choose a valid action that posts the wrong quantity. [Claude structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) · [Claude vision](https://platform.claude.com/docs/en/build-with-claude/vision) · [Gemini structured outputs](https://ai.google.dev/gemini-api/docs/structured-output) · [Gemini image inputs](https://ai.google.dev/gemini-api/docs/image-understanding)
+
+For a model comparison, select the same workflow, seed, condition, interface and call limit. Record the requested and returned model IDs and keep interrupted attempts in the denominator. Open the results explorer and filter the phase to **standalone** to inspect the local traces. The trace shows provider-reported usage. Standalone runs do not estimate dollar cost. If the process stops, open its unfinished checkpoint in Results to see the last saved observation and receipt. The last request or action can be unconfirmed. Starting another run creates a new ID and can incur another charge.
+
+The published 172-attempt study covers its original OpenAI model snapshots only.
+
 ## Experiment design
 
 The schedule is deterministic. `node src/retail/study.ts plan` prints every slot. Four calibration attempts exercise GPT-5.4 mini and nano on the same partial receipt in both interfaces. Development uses a clean control, both whole-order timeout cases, a partial receipt and an unresolved conflict, four starting datasets, two models, three repetitions: 120 attempts. The held-out comparison uses mini, the same six conditions in both interfaces (including stale inventory), four different datasets and one repetition: 48 attempts. The transfer and refund suites have scripted evidence; the paid study is on receiving.

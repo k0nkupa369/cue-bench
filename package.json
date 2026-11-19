@@ -7,6 +7,7 @@
   },
   "scripts": {
     "start": "node src/retail/server.ts",
+    "retail:run": "node src/retail/run.ts",
     "research:report": "node src/retail/findings.ts",
     "typecheck": "tsc --noEmit",
     "record": "node src/record.ts",

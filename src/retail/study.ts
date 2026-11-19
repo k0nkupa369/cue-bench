@@ -17,6 +17,19 @@ type Mode='controls'|'pixels';
 type Job={id:string,model:Model,mode:Mode,condition:Condition,seed:number,repeat:number,phase:Attempt['phase']};
 export const protocol={version:1,actions:40,minutes:4,outputTokens:600,width:1024,height:900,
   instruction:'Operate this fictional retail workbench to complete the assigned job. Read the source documents. Decide what to do from the visible evidence. When done, use Finish job or Send to supervisor. Respond with a JSON object containing actions, an ordered array of at most four actions. Stop a batch before you need new evidence. Never use external resources.'};
+const decisionInstruction=protocol.instruction+' Include a short factual observation in the JSON field memo for your next step.';
+function decisionFormat(mode:Mode){
+  return {
+    type:'object',additionalProperties:false,required:['memo','actions'],properties:{
+      memo:{type:'string'},actions:{type:'array',items:{
+        type:'object',additionalProperties:false,required:['op','target','value','x','y'],properties:{
+          op:{type:'string',enum:mode==='controls'?['click','fill','select']:['click','type','key','scroll']},
+          target:{type:['integer','null']},value:{type:['string','null']},x:{type:['integer','null']},y:{type:['integer','null']}
+        }
+      }}
+    }
+  };
+}
 export function plan():Job[]{
   const rows:Job[]=[];
   function add(phase:Job['phase'],seed:number,condition:Condition,model:Model,mode:Mode,repeat:number){
@@ -68,6 +81,11 @@ async function observe(page:Page,mode:Mode){
   }).join('\n'));
   return {text:text+'\nControls\n'+controls,image:undefined};
 }
+function observationPrompt(mode:Mode,history:string[],view:Awaited<ReturnType<typeof observe>>){
+  const controls=mode==='controls'?'Use click/fill/select with numeric target from Controls and value for fill/select. End a batch at navigation; indexes can change.':
+    'Use click with integer x,y in the 1024x900 image; type with value; key with Tab, Enter, ArrowDown, ArrowUp, Backspace or ControlOrMeta+a; scroll with value up/down.';
+  return 'Return a JSON object with actions and memo. '+controls+'\nPrior observations and actions:\n'+history.slice(-14).join('\n')+'\nCurrent screen:\n'+(view.image?'See image.':view.text);
+}
 async function act(page:Page,m:Move,mode:Mode){
   if(mode==='controls'){
     if(m.target===undefined || m.target<0)throw Error('Invalid control index');
@@ -115,9 +133,7 @@ async function runJob(browser:Browser,j:Job,rehearsal=false):Promise<LiveAttempt
         writeFileSync(root+'/screens/'+imagePath,Buffer.from(view.image,'base64'));
       }
       frames.push({action:'Observation '+(turn+1),view:view.text,elapsedMs:Date.now()-start,eventCount:desk.events.length,image:imagePath});
-      const controls=j.mode==='controls'?'Use click/fill/select with numeric target from Controls and value for fill/select. End a batch at navigation; indexes can change.':
-        'Use click with integer x,y in the 1024x900 image; type with value; key with Tab, Enter, ArrowDown, ArrowUp, Backspace or ControlOrMeta+a; scroll with value up/down.';
-      const content:object[]=[{type:'input_text',text:'Return a JSON object with actions and memo. '+controls+'\nPrior observations and actions:\n'+history.slice(-14).join('\n')+'\nCurrent screen:\n'+(view.image?'See image.':view.text)}];
+      const content:object[]=[{type:'input_text',text:observationPrompt(j.mode,history,view)}];
       if(view.image)content.push({type:'input_image',image_url:'data:image/jpeg;base64,'+view.image,detail:'high'});
       if(!rehearsal)atomic(root+'/attempts/'+j.id+'.checkpoint',{...capture(desk),frames,actions,durationMs:Date.now()-start});
       let moves:Move[];
@@ -130,13 +146,9 @@ async function runJob(browser:Browser,j:Job,rehearsal=false):Promise<LiveAttempt
         const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal,headers:{
           Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
             model:rates[j.model].snapshot,store:false,service_tier:'default',max_output_tokens:protocol.outputTokens,
-            instructions:protocol.instruction+' Include a short factual observation in the JSON field memo for your next step.',
-            text:{format:{type:'json_schema',name:'browser_decision',strict:true,schema:{
-              type:'object',additionalProperties:false,required:['memo','actions'],properties:{memo:{type:'string'},actions:{type:'array',items:{
-                type:'object',additionalProperties:false,required:['op','target','value','x','y'],properties:{
-                  op:{type:'string',enum:j.mode==='controls'?['click','fill','select']:['click','type','key','scroll']},
-                  target:{type:['integer','null']},value:{type:['string','null']},x:{type:['integer','null']},y:{type:['integer','null']}
-                }}}}}}},input:[{role:'user',content}]})});
+            instructions:decisionInstruction,
+            text:{format:{type:'json_schema',name:'browser_decision',strict:true,schema:decisionFormat(j.mode)}},
+            input:[{role:'user',content}]})});
         if(!response.ok){
           const info=await response.json().catch(()=>({}));
           const diagnostic=String(info.error?.message??'').replace(/sk-[A-Za-z0-9_-]+/g,'[redacted]').slice(0,180);
@@ -241,3 +253,5 @@ async function main(){
   }finally{unlinkSync(root+'/active.lock');}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await main();
+
+export {action,act,observe,observationPrompt,decisionInstruction,decisionFormat,type Mode};
