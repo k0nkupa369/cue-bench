@@ -2,7 +2,7 @@ import {chromium, type Page} from 'playwright';
 import {randomUUID} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {startFixture} from './fixture.ts';
-import {type Action, type Recording} from './model.ts';
+import {lookupMessage, type Action, type Recording} from './model.ts';
 
 export async function perform(page: Page, action: Action) {
   let lookupResult: string | undefined;
@@ -42,10 +42,12 @@ async function main() {
         {type:'fill',field:'Quantity',value:String(requested.quantity)}, {type:'submit'}];
       if (scenario !== 'normal' && strategy === 'check') {
         actions.push({type:'fill',field:'Order reference',value:requested.reference},{type:'lookup'});
-        if (scenario === 'lost') actions.push({type:'submit'});
       }
       if (scenario !== 'normal' && strategy === 'blind') actions.push({type:'submit',via:'enter'});
       for (const action of actions) run.steps.push(await perform(page,action));
+      if (run.steps.at(-1)?.lookupResult === lookupMessage(requested.reference,false)) {
+        run.steps.push(await perform(page,{type:'submit'}));
+      }
       console.log(JSON.stringify(run,null,2));
     } finally { await browser.close(); }
   } finally { fixture.close(); }

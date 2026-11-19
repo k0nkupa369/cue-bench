@@ -7,7 +7,7 @@
     "driver": "Chromium / Playwright"
   },
   "requested": {
-    "reference": "CUE-024a6657-b36d-44a5-970e-36f9aff32adf",
+    "reference": "CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d",
     "item": "Field notebook",
     "quantity": 2
   },
@@ -17,9 +17,9 @@
       "action": {
         "type": "fill",
         "field": "Reference",
-        "value": "CUE-024a6657-b36d-44a5-970e-36f9aff32adf"
+        "value": "CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d"
       },
-      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"1\"\n  - button \"Submit order\"\n  - status\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"1\"\n  - button \"Submit order\"\n  - status\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
     },
     {
       "action": {
@@ -27,39 +27,39 @@
         "field": "Quantity",
         "value": "2"
       },
-      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
     },
     {
       "action": {
         "type": "submit"
       },
-      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: Submission timed out.\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: Submission timed out.\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
     },
     {
       "action": {
         "type": "fill",
         "field": "Order reference",
-        "value": "CUE-024a6657-b36d-44a5-970e-36f9aff32adf"
+        "value": "CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d"
       },
-      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: Submission timed out.\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - button \"Find order\"\n  - status"
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: Submission timed out.\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - button \"Find order\"\n  - status"
     },
     {
       "action": {
         "type": "lookup"
       },
-      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: Submission timed out.\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - button \"Find order\"\n  - status: No order found for CUE-024a6657-b36d-44a5-970e-36f9aff32adf",
-      "lookupResult": "No order found for CUE-024a6657-b36d-44a5-970e-36f9aff32adf"
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: Submission timed out.\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - button \"Find order\"\n  - status: No order found for CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d",
+      "lookupResult": "No order found for CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d"
     },
     {
       "action": {
         "type": "submit"
       },
-      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: \"Order saved: CUE-024a6657-b36d-44a5-970e-36f9aff32adf\"\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\": CUE-024a6657-b36d-44a5-970e-36f9aff32adf\n  - button \"Find order\"\n  - status: No order found for CUE-024a6657-b36d-44a5-970e-36f9aff32adf"
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: \"Order saved: CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\"\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\": CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d\n  - button \"Find order\"\n  - status: No order found for CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d"
     }
   ],
   "orders": [
     {
-      "reference": "CUE-024a6657-b36d-44a5-970e-36f9aff32adf",
+      "reference": "CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d",
       "item": "Field notebook",
       "quantity": 2
     }

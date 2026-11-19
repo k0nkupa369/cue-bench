@@ -29,7 +29,8 @@ export function score(run: Recording) {
     const [first, retry] = submissions;
     const message = lookupMessage(run.requested.reference,run.scenario === 'saved');
     const checked = first !== undefined && run.steps.slice(first + 1,retry).some(step =>
-      step.action.type === 'lookup' && step.lookupResult === message && step.view.includes(message));
+      step.action.type === 'lookup' && step.lookupResult === message &&
+      step.view.split('\n').at(-1)?.trim() === '- status: ' + message);
     const expectedCount = run.scenario === 'saved' ? 1 : 2;
     recovery = submissions.length === expectedCount && checked ? 'pass' : 'fail';
   }
