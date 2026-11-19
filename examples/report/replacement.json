@@ -1,6 +1,6 @@
 {
   "taskVersion": 1,
-  "checkerVersion": 1,
+  "checkerVersion": 0,
   "scenario": "lost",
   "origin": "stand-in",
   "configuration": {

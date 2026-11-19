@@ -1,8 +1,8 @@
 import {z} from 'zod';
 import {createHash} from 'node:crypto';
-import {existsSync,readFileSync,writeFileSync} from 'node:fs';
+import {existsSync,readdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
-import {recording,score} from './model.ts';
+import {checkerVersion,recording,score} from './model.ts';
 import {baselineConfig, maxActions,maxMillis,prompt,readLock,slotIds} from './protocol.ts';
 
 const outcome = z.enum(['pass','fail']);
@@ -18,14 +18,17 @@ function report(file:string) {
   if (entries.size !== data.entries.length) throw Error('Duplicate attempt ID');
   const seen = new Set<string>();
   const replaced = new Set<string>();
-  const rows = [...slotIds,...data.entries.map(e=>e.id).filter(id=>!slotIds.includes(id))].map(id=>{
+  const collection = resolve(dirname(file),'collection');
+  const claims = new Set(data.series === 'baseline' && existsSync(collection)
+    ? readdirSync(collection).filter(name=>name.endsWith('.claim')).map(name=>name.slice(0,-6)) : []);
+  const rows = [...new Set([...slotIds,...entries.keys(),...claims])].map(id=>{
     const entry = entries.get(id);
     const scenario = id.split('-')[0];
-    if (!entry) return {id,scenario,status:'unrun',origin:null,outcome:null,recovery:null};
+    if (!entry) return {id,scenario,status:claims.has(id) ? 'claimed / awaiting registration' : 'unrun',origin:null,outcome:null,recovery:null};
     const bytes = readFileSync(resolve(dirname(file),entry.file));
     if (createHash('sha256').update(bytes).digest('hex') !== entry.sha256) throw Error(id+' recording changed');
     const run = recording.parse(JSON.parse(bytes.toString()));
-    if (!lock || run.scenario !== scenario || run.configuration.model !== lock.model ||
+    if (!lock || run.checkerVersion !== lock.checkerVersion || run.taskVersion !== lock.taskVersion || run.scenario !== scenario || run.configuration.model !== lock.model ||
         run.configuration.prompt !== lock.prompt || run.configuration.maxMillis !== lock.maxMillis ||
         run.configuration.maxActions !== lock.maxActions || !run.stopReason || !run.startedAt ||
         Date.parse(run.startedAt) < Date.parse(lock.frozenAt) || run.baselineId !== id ||
@@ -36,9 +39,10 @@ function report(file:string) {
          entry.replaces.replace(/-r[1-9]\d*$/,'') !== base))) throw Error(id+' invalid replacement');
     if (entry.replaces) replaced.add(entry.replaces);
     if (run.stopReason === 'interrupted') seen.add(id);
-    if (entry.previous?.checkerVersion === String(run.checkerVersion)) throw Error(id+' correction must identify the earlier checker version');
+    if (entry.previous?.checkerVersion === String(checkerVersion)) throw Error(id+' correction must identify the earlier checker version');
+    if (run.checkerVersion !== checkerVersion && !entry.previous) throw Error(id+' missing correction history');
     return {id,scenario,status:run.stopReason,origin:run.origin,...score(run),recording:entry.file,
-      sha256:entry.sha256,checkerVersion:run.checkerVersion,previous:entry.previous,
+      sha256:entry.sha256,recordedCheckerVersion:run.checkerVersion,checkerVersion,previous:entry.previous,
       replaces:entry.replaces,lastKnownView:run.steps.at(-1)?.view ?? run.initialView};
   });
   return {series:data.series,configuration:lock,rows};
@@ -48,7 +52,7 @@ const args = process.argv.slice(2);
 if (args[0] === 'freeze') {
   const model = args[1];
   if (!model || !/-\d{4}-\d{2}-\d{2}$/.test(model)) throw Error('Provide a dated model snapshot ID');
-  const lock = baselineConfig.parse({model,frozenAt:new Date().toISOString(),prompt,maxActions,maxMillis,taskVersion:1,checkerVersion:1});
+  const lock = baselineConfig.parse({model,frozenAt:new Date().toISOString(),prompt,maxActions,maxMillis,taskVersion:1,checkerVersion});
   writeFileSync('baseline/frozen.json',JSON.stringify(lock,null,2)+'\n',{flag:'wx'});
 } else {
   const file = args.find(arg=>arg !== '--json') ?? 'baseline/attempts.json';
@@ -57,6 +61,7 @@ if (args[0] === 'freeze') {
   else {
     console.log(result.series === 'fictional' ? 'FICTIONAL REPORT EXAMPLE' : 'Maintained baseline');
     console.log(result.configuration ?? 'Configuration pending. All nine slots are unrun.');
+    console.log('Attempt  Status  Origin  Outcome  Recovery');
     for (const r of result.rows) {
       console.log([r.id,r.status,r.origin,r.outcome,r.recovery].map(v=>v ?? '—').join('  '));
       if (!('recording' in r)) continue;

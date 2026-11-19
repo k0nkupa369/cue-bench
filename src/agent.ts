@@ -1,12 +1,13 @@
+import {writeFileSync} from 'node:fs';
 import {chromium} from 'playwright';
 import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
 import {z} from 'zod';
 import {startFixture} from './fixture.ts';
 import {perform} from './record.ts';
-import {action, lookupMessage, recording, type Action, type Recording} from './model.ts';
+import {action, checkerVersion, lookupMessage, recording, type Action, type Recording} from './model.ts';
 
-import {prompt, maxActions, maxMillis, readLock, slotIds} from './protocol.ts';
+import {claimAttempt, prompt, maxActions, maxMillis, readLock, slotIds} from './protocol.ts';
 const args = process.argv.slice(2);
 const mode = z.enum(['stand-in','limit','disconnect','deadline','validation','openai']).parse(args[0] ?? 'stand-in');
 const scenario = z.enum(['normal','saved','lost']).parse(args[1] ?? 'normal');
@@ -18,9 +19,10 @@ if (idIndex !== -1 && (!live || !baselineId ||
   throw Error('Baseline collection requires a matching reserved ID and live mode');
 }
 const lock = baselineId ? readLock('baseline/frozen.json') : undefined;
+if (lock && lock.checkerVersion !== checkerVersion) throw Error('Frozen checker differs from collection checker');
 const model = lock?.model ?? (live ? process.env.OPENAI_MODEL : 'scripted-provider');
 if (!model || (live && (!process.env.OPENAI_API_KEY || !args.includes('--allow-paid')))) {
-  throw Error('Live mode requires --allow-paid, OPENAI_MODEL and OPENAI_API_KEY.');
+  throw Error('Live mode requires --allow-paid, an API key and a frozen or explicitly selected model.');
 }
 
 // Expose the same labelled UI operations to each provider. Only the host sees fixture state.
@@ -60,6 +62,7 @@ async function decide(requested: Recording['requested'], steps: Recording['steps
     action.parse({...JSON.parse(item.arguments ?? '{}'),type:item.name}));
 }
 
+const archive = baselineId ? claimAttempt('baseline',baselineId) : undefined;
 const budget = mode === 'deadline' ? 1000 : maxMillis;
 const started = performance.now();
 const remaining = () => Math.max(1,budget - (performance.now() - started));
@@ -103,4 +106,6 @@ try {
   run.stopReason = signal.aborted || performance.now()-started >= budget ? 'time-limit' : 'interrupted';
   console.error(run.stopReason === 'time-limit' ? 'Time limit reached' : 'Attempt interrupted: '+(error instanceof Error ? error.name : 'unknown error'));
 } finally { fixture.close(); }
-console.log(JSON.stringify(recording.parse(run),null,2));
+const output = JSON.stringify(recording.parse(run),null,2);
+if (archive) writeFileSync(archive,output+'\n',{flag:'wx'});
+console.log(output);

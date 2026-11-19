@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const checkerVersion = 1;
+
 export const order = z.object({
   reference: z.string().min(1).max(80),
   item: z.literal('Field notebook'),
@@ -11,7 +13,7 @@ export const action = z.discriminatedUnion('type', [
   z.object({type: z.literal('submit'), via: z.enum(['click','enter']).optional()})
 ]);
 export const recording = z.object({
-  taskVersion: z.literal(1), checkerVersion: z.literal(1), scenario: z.enum(['normal','saved','lost']),
+  taskVersion: z.literal(1), checkerVersion: z.number().int().nonnegative(), scenario: z.enum(['normal','saved','lost']),
   origin: z.enum(['scripted','stand-in','openai']),
   configuration: z.object({driver: z.string().min(1), model:z.string().optional(), prompt:z.string().optional(),
     maxActions:z.number().int().positive().optional(), maxMillis:z.number().int().positive().optional()}),

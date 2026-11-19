@@ -72,3 +72,5 @@ node src/report.ts examples/report/attempts.json
 ```
 
 Before any future authorized collection, freeze the configuration with `npm run report -- freeze <dated-model-id>`. This creates the lock once. The collector accepts a reserved ID via `--baseline-id` and uses the frozen model, prompt, and budgets. Archive each recording and explicitly register its ID, relative path and SHA-256 in the maintained manifest. A replacement gets a new ID such as `lost-01-r1` and links to the interrupted attempt. Replaying does not register an attempt. For corrections, retain the previous checker version, score, and reason beside the same recording digest. Keep pilot runs and contributed examples outside this manifest.
+
+Use a single collection checkout. Before a paid baseline attempt starts, the collector claims its ID exclusively in that checkout. It preserves the claim across interruptions and archives the resulting recording alongside it. The report shows unregistered claims. Register an interrupted recording before collecting its replacement. Separate checkouts do not share claims.
