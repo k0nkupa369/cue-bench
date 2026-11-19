@@ -1,5 +1,6 @@
 import {createServer} from 'node:http';
 import {randomUUID,randomInt} from 'node:crypto';
+import {home,results,replay,trace,reveal,screenshot} from './portfolio.ts';
 import {capture} from './grade.ts';
 import {resolve} from 'node:path';
 import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
@@ -18,8 +19,15 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
     const token=req.headers.cookie?.split(';').map(value=>value.trim()).find(value=>value.startsWith(cookie+'='))?.slice(cookie.length+1);
     const d=token?sessions.get(token):undefined;
     try{
+      if(req.method==='GET' && url.pathname==='/portfolio.css')return send(200,readFileSync(new URL('../../retail/portfolio.css',import.meta.url),'utf8'),'text/css');
+      if(req.method==='GET' && url.pathname==='/replays')return send(200,replay(url.searchParams));
+      if(req.method==='GET' && url.pathname==='/results')return send(200,results(url.searchParams));
+      if(req.method==='GET' && url.pathname==='/trace')return send(200,trace(url.searchParams.get('id')??''));
+      if(req.method==='GET' && url.pathname.startsWith('/screens/')){
+        const bytes=screenshot(url.pathname.slice(9));return bytes?res.writeHead(200,{'Content-Type':'image/jpeg'}).end(bytes):send(404,'Missing screenshot');
+      }
       if(req.method==='GET' && url.pathname==='/style.css') return send(200,readFileSync(new URL('../../retail/style.css',import.meta.url),'utf8'),'text/css');
-      if(req.method==='GET' && url.pathname==='/') return send(200,page('<p class="eyebrow">Operations benchmark</p><h1>Retail workbench</h1><p class="brief">Receive a delivery, move stock between warehouses, or reconcile a return. Use the documents and journals to verify what posted.</p><div class="choices">'+workflows.map(w=>'<form method="post" action="/start?workflow='+w+'"><button>Start '+w+' job</button></form>').join('')+'</div>','Retail operations'));
+      if(req.method==='GET' && url.pathname==='/') return send(200,home());
       if(req.method==='POST' && req.headers.origin!=='http://'+req.headers.host) return send(403,'Origin rejected');
       if(req.method==='POST' && url.pathname==='/start'){
         const choice=url.searchParams.get('workflow')??'receiving';
@@ -35,6 +43,7 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
       if(!d) return redirect('/');
       d.lastSeen=Date.now();
       if(req.method==='GET' && url.pathname==='/desk'){
+        if(d.finished && options.humanArchive)return send(200,reveal(d));
         if(d.finished) return send(200,page('<h1>Job closed</h1><p>'+escape(d.note||'Submitted for review.')+'</p><a href="/">Back to workbench</a>','Job closed'));
         const name=url.searchParams.get('view')??'job';
         if(!['job','document','post','journal','stock','handoff'].includes(name))return send(404,'Unknown view');
