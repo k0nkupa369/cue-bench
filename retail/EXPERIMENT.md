@@ -12,12 +12,14 @@ The primary outcome is closing via Finish job before any valid posting. Secondar
 
 ## Reproduce or inspect
 
-From the repository root, run these commands without a key to inspect the schedule and local results.
+From the repository root, run these commands without a key to inspect the schedule and results.
 
 ```sh
 node src/retail/navigation-experiment.ts plan
 node src/retail/navigation-experiment.ts report
 ```
+
+The report uses the local collection once it has a scheduled slot claim. Otherwise it reads the published archive in `retail/navigation-study/`. To read the archive even when you have a local collection, run `node src/retail/navigation-experiment.ts report --published`. The source is printed to stderr and the JSON report to stdout.
 
 To collect a separately authorized replication, install Chromium or set `CHROMIUM_PATH` and configure an OpenAI project key. First run `node src/retail/navigation-experiment.ts calibrate --allow-paid`. Inspect the calibration trace and usage. Then run `node src/retail/navigation-experiment.ts collect --allow-paid`. Each checkout has its own budget ledger under `retail/local/navigation-v1`. Running independent copies does not enforce a shared cap across them. The collector reserves all eight requests at the maximum uncached context price before starting each attempt. It replaces reservations with usage estimates and stops on missing receipts, stale checkpoints or source drift. Inspect an existing collector lock and its PID after an abrupt process exit before manually clearing a stale lock. Do not remove or reuse slot claims.
 
