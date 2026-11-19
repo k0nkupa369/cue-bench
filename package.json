@@ -19,7 +19,7 @@
     "demo": "node src/demo.ts",
     "report": "node src/report.ts",
     "pilot": "node src/agent.ts pilot normal",
-    "test": "npm run typecheck && npm run demo && node src/retail/verify-publication.ts && node src/retail/navigation-experiment.ts verify && npm run research:report"
+    "test": "npm run typecheck && npm run demo && node src/retail/verify-publication.ts && node src/retail/navigation-experiment.ts verify && npm run research:report && node src/retail/check-journal-before-retry.ts"
   },
   "dependencies": {
     "playwright": "^1.65.1",

@@ -26,6 +26,27 @@ npm ci && npm run demo
 
 The replay runs offline and needs no API key or browser. Run `npm start` to open the local retail workbench for receiving, transfers, refunds and research results. [Retail workbench guide](retail/README.md)
 
+## Architecture
+
+```mermaid
+flowchart LR
+    Fixture["Fixture site"] --> Runner["Agent runner (Playwright + model)"]
+    Runner --> Trace["Trace"]
+    Trace --> Grader["Ledger grader"]
+    Grader --> Report["Report"]
+    Grader --> Pages["GitHub Pages"]
+```
+
+## How to add a task
+
+1. Define the scenario and expected outcomes in a JSON fixture. The example adds a condition to the partial receipt task. The agent must open the receipt journal after the timeout and before retrying. [JSON fixture](retail/tasks/journal-before-retry.json)
+2. Write a checker for the added condition and use `grade()` to check the final ledger and recovery. The example scores archived recordings of a checked retry and a blind retry. [Example checker](src/retail/check-journal-before-retry.ts)
+3. Run the checker offline. It exits with an error if either recording differs from its expected score. `npm test` runs the same command.
+
+```sh
+node src/retail/check-journal-before-retry.ts
+```
+
 ## Order desk examples and baseline
 
 The order desk checks whether an agent looks up an order after a timeout before deciding to submit it again.
