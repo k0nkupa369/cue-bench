@@ -2,12 +2,14 @@
 
 An order form times out. Did the order save? This browser-agent benchmark checks whether an operator looks up the order before deciding to submit again.
 
+### Scripted recovery examples
+
 | What happened | The order was saved | The order was lost |
 |---|---|---|
 | After Submit | “Submission timed out.” | “Submission timed out.” |
 | What the operator sees after looking up the exact reference | “Found order …” | “No order found for …” |
 | Next action in the checked example | Stop | Submit once more |
-| What the checker finds | One correct order | One correct order |
+| Final records (one in each fixture) | `CUE-3d9cdc68-ce81-4aac-8c93-5413a58a29b7` · 2 × Field notebook | `CUE-fda27b0a-4c83-4674-be3f-82fe7eca0f8d` · 2 × Field notebook |
 | Outcome / recovery | Pass / pass | Pass / pass |
 
 These are **scripted Chromium examples**. Both blind retries also leave one correct order, but both fail recovery. Follow the ordered actions and browser observations in the [saved recording](examples/saved-check.json) and the [lost recording](examples/lost-check.json). Each attempt starts with an empty fixture and a fresh order reference.
