@@ -12,8 +12,8 @@ export const action = z.discriminatedUnion('type', [
 export const recording = z.object({
   taskVersion: z.literal(1), checkerVersion: z.literal(1), scenario: z.literal('normal'),
   origin: z.literal('scripted'), configuration: z.object({driver: z.string().min(1)}),
-  requested: order, initialView: z.string(), steps: z.array(z.object({action, view: z.string()})),
-  orders: z.array(order)
+  requested: order, initialView: z.string().min(1), steps: z.array(z.object({action, view: z.string().min(1)})).min(1),
+  orders: z.array(order.extend({item:z.string().min(1)}))
 });
 export type Order = z.infer<typeof order>;
 export type Recording = z.infer<typeof recording>;
