@@ -26,7 +26,7 @@ export async function perform(page: Page, action: Action) {
 async function main() {
   const scenario = process.argv[2] ?? 'normal';
   const strategy = process.argv[3] ?? 'check';
-  if (scenario !== 'normal' && scenario !== 'saved') throw Error('Unknown scenario');
+  if (scenario !== 'normal' && scenario !== 'saved' && scenario !== 'lost') throw Error('Unknown scenario');
   if (!['check','blind','stop'].includes(strategy)) throw Error('Unknown strategy');
   const fixture = await startFixture(scenario);
   try {
@@ -42,6 +42,7 @@ async function main() {
         {type:'fill',field:'Quantity',value:String(requested.quantity)}, {type:'submit'}];
       if (scenario !== 'normal' && strategy === 'check') {
         actions.push({type:'fill',field:'Order reference',value:requested.reference},{type:'lookup'});
+        if (scenario === 'lost') actions.push({type:'submit'});
       }
       if (scenario !== 'normal' && strategy === 'blind') actions.push({type:'submit',via:'enter'});
       for (const action of actions) run.steps.push(await perform(page,action));

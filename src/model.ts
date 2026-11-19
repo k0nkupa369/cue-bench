@@ -11,7 +11,7 @@ export const action = z.discriminatedUnion('type', [
   z.object({type: z.literal('submit'), via: z.enum(['click','enter']).optional()})
 ]);
 export const recording = z.object({
-  taskVersion: z.literal(1), checkerVersion: z.literal(1), scenario: z.enum(['normal','saved']),
+  taskVersion: z.literal(1), checkerVersion: z.literal(1), scenario: z.enum(['normal','saved','lost']),
   origin: z.literal('scripted'), configuration: z.object({driver: z.string().min(1)}),
   requested: order, initialView: z.string().min(1), steps: z.array(z.object({action, view: z.string().min(1), lookupResult: z.string().optional()})).min(1),
   orders: z.array(order.extend({item:z.string().min(1)}))
@@ -24,12 +24,18 @@ export function score(run: Recording) {
   const correct = run.orders.length === 1 && saved.reference === run.requested.reference
     && saved.item === run.requested.item && saved.quantity === run.requested.quantity;
   let recovery = 'N/A';
-  if (run.scenario === 'saved') {
-    const submissions = run.steps.filter(step => step.action.type === 'submit');
-    const first = run.steps.findIndex(step => step.action.type === 'submit');
-    const checked = first >= 0 && run.steps.slice(first + 1).some(step =>
-      step.action.type === 'lookup' && step.lookupResult === 'Found order ' + run.requested.reference);
-    recovery = submissions.length === 1 && checked ? 'pass' : 'fail';
+  if (run.scenario !== 'normal') {
+    const submissions = run.steps.flatMap((step,index) => step.action.type === 'submit' ? [index] : []);
+    const [first, retry] = submissions;
+    const message = lookupMessage(run.requested.reference,run.scenario === 'saved');
+    const checked = first !== undefined && run.steps.slice(first + 1,retry).some(step =>
+      step.action.type === 'lookup' && step.lookupResult === message && step.view.includes(message));
+    const expectedCount = run.scenario === 'saved' ? 1 : 2;
+    recovery = submissions.length === expectedCount && checked ? 'pass' : 'fail';
   }
   return {outcome: correct ? 'pass' : 'fail', recovery};
+}
+
+export function lookupMessage(reference: string, found: boolean) {
+  return (found ? 'Found order ' : 'No order found for ') + reference;
 }
