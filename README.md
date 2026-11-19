@@ -1,10 +1,55 @@
 # cue-bench
 
-[Play the failed delivery](https://k0nkupa369.github.io/cue-bench/) or [replay the recorded 13/0 outcome](https://k0nkupa369.github.io/cue-bench/#development-1-partial-mini-controls-3). The public case runs in your browser with fictional stock and no API key.
+cue-bench is an open benchmark for browser agents doing fictional retail work. It checks the stock ledger after each run to measure whether agents finish the job correctly and recover safely when a write times out.
 
-**Retail operations workbench:** run `npm start` to try receiving, inventory transfers and refunds, compare browser recordings and explore research results. [Research guide](retail/README.md).
+## Retail study results
 
-An order form times out. Did the order save? This browser-agent benchmark checks whether an operator looks up the order before deciding to submit again.
+The receiving study collected 172 attempts across calibration, development and held-out cohorts. The table shows the development and held-out results. [Full findings, methods and recordings](retail/FINDINGS.md)
+
+| Cohort | Correct jobs | Recovery passes / reached timeout | Runs with excess or broken ledger | Excess units | Unsafe writes | Unnecessary handoffs / resolvable jobs | Justified handoffs / conflict jobs |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| development/gpt-5.4-nano-2026-03-17/controls | 4 / 60 | 0 / 23 | 17 | 306 | 11 | 0 / 48 | 0 / 12 |
+| development/gpt-5.4-mini-2026-03-17/controls | 12 / 60 | 0 / 43 | 6 | 68 | 12 | 3 / 48 | 0 / 12 |
+| heldout/gpt-5.4-mini-2026-03-17/controls | 2 / 24 | 0 / 18 | 2 | 26 | 6 | 2 / 20 | 0 / 4 |
+| heldout/gpt-5.4-mini-2026-03-17/pixels | 0 / 24 | 0 / 1 | 1 | 37 | 1 | 0 / 20 | 0 / 4 |
+
+- [Play the live demo](https://k0nkupa369.github.io/cue-bench/) and try recovering a partial receipt.
+- [Replay the 13-to-0 failure case](https://k0nkupa369.github.io/cue-bench/#development-1-partial-mini-controls-3) to see how the agent posted 13 ink jackets and zero moss jackets.
+
+## Quick start
+
+With Node 22.18 or later, install dependencies and rescore the checked-in examples.
+
+```sh
+npm ci && npm run demo
+```
+
+The replay runs offline and needs no API key or browser. Run `npm start` to open the local retail workbench for receiving, transfers, refunds and research results. [Retail workbench guide](retail/README.md)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Fixture["Fixture site"] --> Runner["Agent runner (Playwright + model)"]
+    Runner --> Trace["Trace"]
+    Trace --> Grader["Ledger grader"]
+    Grader --> Report["Report"]
+    Grader --> Pages["GitHub Pages"]
+```
+
+## How to add a task
+
+1. Define the scenario and expected outcomes in a JSON fixture. The example adds a condition to the partial receipt task. The agent must open the receipt journal after the timeout and before retrying. [JSON fixture](retail/tasks/journal-before-retry.json)
+2. Write a checker for the added condition and use `grade()` to check the final ledger and recovery. The example scores archived recordings of a checked retry and a blind retry. [Example checker](src/retail/check-journal-before-retry.ts)
+3. Run the checker offline. It exits with an error if either recording differs from its expected score. `npm test` runs the same command.
+
+```sh
+node src/retail/check-journal-before-retry.ts
+```
+
+## Order desk examples and baseline
+
+The order desk checks whether an agent looks up an order after a timeout before deciding to submit it again.
 
 ### Scripted recovery examples
 
@@ -18,15 +63,9 @@ An order form times out. Did the order save? This browser-agent benchmark checks
 
 These are **scripted Chromium examples**. Both blind retries also leave one correct order, but both fail recovery. Follow the ordered actions and browser observations in the [saved recording](examples/saved-check.json) and the [lost recording](examples/lost-check.json). Each attempt starts with an empty fixture and a fresh order reference.
 
-## Rescore the examples
+### Rescore a single recording
 
-From the project directory with Node 22.18 or later:
-
-```sh
-npm ci --ignore-scripts && npm run demo
-```
-
-After installation, `npm run demo` works offline without a key or browser. It checks all seven examples, including deliberate failures. For a single JSON result, run:
+For a single JSON result, run the replay command.
 
 ```sh
 node src/replay.ts examples/lost-blind.json pass/fail
@@ -34,7 +73,7 @@ node src/replay.ts examples/lost-blind.json pass/fail
 
 The JSON goes to stdout and the summary goes to stderr. A mismatch with the optional expected outcome/recovery pair exits 1. An unreadable or invalid recording exits 2.
 
-## Use the order desk
+### Use the order desk
 
 `npm run fixture` prints a loopback URL for the normal order form. Open it in your browser. Stop the server to discard the fictional orders. The recorder starts its own fresh fixture and closes it afterward.
 
@@ -46,16 +85,16 @@ node src/replay.ts my-lost-order.json pass/pass
 
 Use `normal`, `saved`, or `lost` for the case and `check`, `blind`, or `stop` for the scripted behavior. To use an installed Chromium executable, set `CHROMIUM_PATH` to its path.
 
-## Run a provider stand-in
+### Run a provider stand-in
 
 ```sh
 node src/agent.ts stand-in lost > my-attempt.json
 node src/replay.ts my-attempt.json
 ```
 
-The runner exposes the local form through labelled browser controls. It sends the requested order, actions, and visible accessibility snapshots to its decision provider. The checker reads the final fixture records independently. Each live attempt allows 30 individual actions and three minutes. A batch still counts one action at a time. The stand-in also supports `limit`, `deadline` (shortened clock), `disconnect`, and `validation` to demonstrate those paths without credentials.
+The runner exposes the local form through labelled browser controls. It sends the requested order, actions, and visible accessibility snapshots to its decision provider. The checker reads the final fixture records independently. Live attempts have action and time limits. A batch still counts one action at a time. The stand-in also supports `limit`, `deadline` (shortened clock), `disconnect`, and `validation` to demonstrate those paths without credentials.
 
-## Run a live model
+### Run a live model
 
 The order runner supports OpenAI, Anthropic Claude, and Google Gemini. Set the API key and model ID in your shell. Keys stay in the Node process. Use a model available to your account that supports function calling.
 
@@ -74,7 +113,7 @@ node src/agent.ts anthropic lost --allow-paid > my-attempt.json
 node src/replay.ts my-attempt.json
 ```
 
-The retail workbench accepts the same three providers. Pass the model explicitly. Use a model that supports structured output and, for screenshot runs, image input. This example requests one Gemini run on a partial receipt with up to eight API calls.
+The retail workbench accepts the same three providers. Pass the model explicitly. Use a model that supports structured output and, for screenshot runs, image input. This example requests a Gemini run on a partial receipt.
 
 ```sh
 npm run retail:run -- --provider gemini --model "$GEMINI_MODEL" --mode pixels --workflow receiving --condition partial --seed 1 --max-calls 8 --allow-paid
@@ -82,7 +121,7 @@ npm run retail:run -- --provider gemini --model "$GEMINI_MODEL" --mode pixels --
 
 Both commands send data to the selected provider and may incur charges. A call limit bounds the number of requests. The provider determines the price. The original paid pilot and frozen order baseline use OpenAI. [Retail protocol and provider design](retail/README.md)
 
-## Submit a recording
+### Submit a recording
 
 1. Use the fictional fixture and a fresh reference. Inspect the JSON before sharing it. Use invented data in every field and browser observation.
 2. Include the task and checker versions, origin, configuration, requested order, initial browser view, ordered actions and observations, and final order records. Preserve the stop reason for provider attempts. The [recording schema](src/model.ts) describes the accepted fields.
@@ -90,9 +129,7 @@ Both commands send data to the selected provider and may incur charges. A call l
 
 An offline score describes the supplied recording. The format does not authenticate its source. The tasks exercise a fictional form with a definitive lookup. General web-agent reliability requires broader evidence.
 
-Original code and fictional fixtures are available under the [MIT license](LICENSE).
-
-## Baseline report
+### Baseline report
 
 Run `npm run report` for the nine reserved slots, or `node src/report.ts --json` for machine-readable results. All nine start unrun. The [fictional manifest](examples/report/attempts.json) illustrates an interruption, a replacement, and an earlier checker score on the same recording:
 
@@ -104,10 +141,12 @@ Before any future authorized collection, freeze the configuration with `npm run 
 
 Use a single collection checkout. Before a paid baseline attempt starts, the collector claims its ID exclusively in that checkout. It preserves the claim across interruptions and archives the resulting recording alongside it. The report shows unregistered claims. Register an interrupted recording before collecting its replacement. Separate checkouts do not share claims.
 
-## Paid pilot
+### Paid pilot
 
 Run `npm run pilot` to preview the limits for free. With the OpenAI project hard limit and spend alert set, `npm run pilot -- --allow-paid` uses the configured API key for one normal-order attempt. It needs Chromium installed as described above. The attempt stays outside all nine baseline slots.
 
-The runner pins GPT-5.4 mini on standard processing and allows eight requests, 1,024 output tokens per request, 30 browser actions and three minutes. Even charging the entire 400,000-token context on each request at the uncached input rate plus maximum output gives less than US$2.44 in model usage, inside the US$5 pilot ceiling. Recheck rates before running if pricing changes. [Model pricing](https://developers.openai.com/api/docs/models/gpt-5.4-mini)
+The preview shows the model, request and action limits, and estimated cost ceiling. Recheck rates before running. [Model pricing](https://developers.openai.com/api/docs/models/gpt-5.4-mini)
 
 The runner claims the attempt locally before its first request. It saves the recording under `.pilot/recording.json`, including requested and metered call counts, token counts, and estimated token cost for returned usage. A missing usage receipt leaves that call's cost unknown. Use the final fixture records to verify whether the requested order was saved. No pilot data enters the public baseline.
+
+Original code and fictional fixtures are available under the [MIT license](LICENSE).

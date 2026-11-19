@@ -35,7 +35,7 @@ const site = 'http://127.0.0.1:'+address.port+prefix;
 const hash = '#development-1-partial-mini-controls-3';
 
 try {
-  const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH});
+  const browser = await chromium.launch({channel:'chromium',executablePath:process.env.CHROMIUM_PATH});
   try {
     for (const mobile of [false,true]) {
       const context = await browser.newContext(mobile ? devices['Pixel 7'] : {viewport:{width:1280,height:850}});

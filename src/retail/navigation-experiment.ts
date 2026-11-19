@@ -10,9 +10,6 @@ const root=fileURLToPath(new URL('../../retail/local/navigation-v1/',import.meta
 const cmd=process.argv[2]??'plan';
 const published=new URL('../../retail/navigation-study/',import.meta.url);
 const verify=cmd==='verify';
-const attempts=verify?new URL('attempts/',published):new URL('../../retail/local/standalone/attempts/',import.meta.url);
-const evidence=verify?JSON.parse(readFileSync(new URL('report.json',published),'utf8')):undefined;
-const publishedIds=new Map<string,string>(evidence?.rows.map((r:{key:string,result:{id:string}})=>[r.key,r.result.id]));
 const model=rates.mini.snapshot;
 const policies=['batch','refresh-after-navigation'] as const;
 type Slot={key:string,policy:typeof policies[number],seed:number,condition:'clean'|'partial',repeat:number};
@@ -28,6 +25,11 @@ const maxCalls=8,capUsd=25;
 const boundPerRequest=(400000*rates.mini.input+protocol.outputTokens*rates.mini.output)/1e6;
 const boundPerRun=maxCalls*boundPerRequest;
 const jobs=schedule();
+const usePublished=verify || (cmd==='report' &&
+  (process.argv.includes('--published') || !jobs.some(slot=>existsSync(root+slot.key+'.claim'))));
+const attempts=usePublished?new URL('attempts/',published):new URL('../../retail/local/standalone/attempts/',import.meta.url);
+const evidence=usePublished?JSON.parse(readFileSync(new URL('report.json',published),'utf8')):undefined;
+const publishedIds=new Map<string,string>(evidence?.rows.map((r:{key:string,result:{id:string}})=>[r.key,r.result.id]));
 function fingerprint(){
   const hash=createHash('sha256');
   for(const file of ['navigation-experiment','run','providers','study','server','views','ledger','grade'])
@@ -37,8 +39,8 @@ function fingerprint(){
 }
 function readSlot(slot:Slot){
   const claim=root+slot.key+'.claim';
-  if(!verify&&!existsSync(claim))return;
-  const uuid=verify?publishedIds.get(slot.key)?.replace(/^standalone-openai-/,'')??'':readFileSync(claim,'utf8').trim();
+  if(!usePublished&&!existsSync(claim))return;
+  const uuid=usePublished?publishedIds.get(slot.key)?.replace(/^standalone-openai-/,'')??'':readFileSync(claim,'utf8').trim();
   if(!/^[0-9a-f-]{36}$/.test(uuid))throw Error('Invalid claim '+slot.key);
   const id='standalone-openai-'+uuid;
   const file=new URL(id+'.json',attempts);
@@ -92,7 +94,12 @@ if(verify){
   if(JSON.stringify(manifest.jobs)!==JSON.stringify(jobs)||manifest.model!==model||manifest.capUsd!==capUsd||manifest.maxCalls!==maxCalls)throw Error('Protocol mismatch');
   console.log('Verified '+jobs.length+' recordings and '+evidence.pairs+' paired comparisons.');
 }else if(cmd==='plan')console.log(JSON.stringify({model,capUsd,maxCalls,boundPerRun,jobs},null,2));
-else if(cmd==='report')console.log(JSON.stringify(report(),null,2));
+else if(cmd==='report'){
+  const results=report();
+  if(usePublished && JSON.stringify(evidence)!==JSON.stringify(results))throw Error('Report does not match archived attempts');
+  console.error(usePublished?'Source: published archive (retail/navigation-study/)':'Source: local collection (retail/local/)');
+  console.log(JSON.stringify(results,null,2));
+}
 else if(cmd==='calibrate'||cmd==='collect'){
   if(!process.argv.includes('--allow-paid')||!process.env.OPENAI_API_KEY)throw Error('Explicit paid flag and OpenAI key required');
   mkdirSync(root,{recursive:true});

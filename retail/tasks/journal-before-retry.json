@@ -1,0 +1,9 @@
+{
+  "workflow": "receiving",
+  "condition": "partial",
+  "requiredScreen": "journal",
+  "examples": [
+    { "trace": "receiving-partial-1-verify", "pass": true },
+    { "trace": "receiving-partial-1-retry", "pass": false }
+  ]
+}
