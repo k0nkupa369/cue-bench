@@ -25,7 +25,7 @@ export function workspace(d:Desk,screen:Screen) {
       body='<p>'+titles.document+' '+job.document+' · Matched to '+job.reference+'</p>'+table(workflow==='receiving'?'Delivered':'Authorized units',workflow==='refund'?'Paid unit price':'Unit',job.lines.map(l=>[l.delivered,workflow==='refund'?dollars(l.priceCents):'each']));
       break;
     case 'journal':
-      body=conflict?'<p role="status">Unverified journal export. Compare the independently captured warehouse count.</p>'+table('Posted units','Document',job.lines.map((_,i)=>[totals[i],job.document])):
+      body=conflict?'<p role="status">Unverified journal export. Compare the independently captured '+(workflow==='refund'?'payment balance':'warehouse count')+'.</p>'+table('Posted units','Document',job.lines.map((_,i)=>[totals[i],job.document])):
         table('Posted units','Document',job.lines.map((_,i)=>[totals[i],job.document]));
       break;
     case 'stock':
