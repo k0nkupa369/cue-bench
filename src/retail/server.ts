@@ -1,12 +1,14 @@
 import {createServer} from 'node:http';
 import {randomUUID,randomInt} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {capture} from './grade.ts';
+import {resolve} from 'node:path';
+import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
 import {once} from 'node:events';
 import {pathToFileURL} from 'node:url';
 import {Desk,conditions,workflows,type Workflow,type Condition,type Screen} from './ledger.ts';
 import {page,workspace,escape} from './views.ts';
 
-export async function startRetail(options:{seed?:number,condition?:Condition,workflow?:Workflow}={}) {
+export async function startRetail(options:{seed?:number,condition?:Condition,workflow?:Workflow,humanArchive?:string}={}) {
   const sessions=new Map<string,Desk>();
   const server=createServer(async(req,res)=>{
     const url=new URL(req.url??'/','http://localhost');
@@ -56,16 +58,26 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
         } catch(e) { d.message=e instanceof Error?e.message:'Invalid quantities';d.log({kind:'post',result:'invalid'}); }
         return redirect('/desk?view=post');
       }
+      let citation;
       if(url.pathname==='/handoff'){
         const note=form.get('note')?.trim();if(!note||note.length>1200)return send(400,'Enter a discrepancy note.');
+        const sku=form.get('sku')??'';
+        const counts=['journal','balance'].map(k=>form.get(k)??'');
+        if(!d.job.lines.some(l=>l.sku===sku)||!counts.every(n=>/^\d{1,8}$/.test(n))) return send(400,'Invalid evidence citation');
+        citation={sku,journal:Number(counts[0]),balance:Number(counts[1])};
         d.note=note;
       }else if(url.pathname!=='/finish') return send(404,'Unknown action');
-      d.log({kind:d.note?'handoff':'finish',note:d.note});
-      d.finished=true;return redirect('/desk');
+      d.log({kind:d.note?'handoff':'finish',note:d.note,citation});
+      d.finished=true;
+      if(options.humanArchive){
+        mkdirSync(options.humanArchive,{recursive:true});
+        writeFileSync(resolve(options.humanArchive,d.id+'.json'),JSON.stringify(capture(d))+'\n',{flag:'wx'});
+      }
+      return redirect('/desk');
     }catch(e){return send(400,escape(e instanceof Error?e.message:'Invalid request'));}
   });
   server.listen(0,'127.0.0.1');await once(server,'listening');
   const address=server.address();if(!address||typeof address==='string')throw Error('Missing port');
   return {url:'http://127.0.0.1:'+address.port, sessions,close:()=>server.close()};
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) console.log((await startRetail()).url);
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) console.log((await startRetail({humanArchive:'retail/local/human'})).url);

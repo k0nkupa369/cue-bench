@@ -16,7 +16,7 @@ export function delivery(seed:number, workflow:Workflow='receiving') {
   };
 }
 export type Event = {kind:'view'|'post'|'finish'|'handoff',ms:number,screen?:Screen,visible?:string,units?:Pair,
-  result?:'applied'|'blocked'|'timeout'|'invalid',changes?:Entry[],note?:string};
+  result?:'applied'|'blocked'|'timeout'|'invalid',changes?:Entry[],note?:string,citation?:{sku:string,journal:number,balance:number}};
 export class Desk {
   readonly seed:number;
   readonly started=Date.now();

@@ -24,13 +24,16 @@ export function grade(a:Attempt){
   });
   let unresolved=false,checked=true,unsafeWrites=0,blocked=0,timeout=false;
   let evidence=new Set<string>();
+  const posted=[0,0];
   for(const e of a.events){
     if(e.kind==='view'&&e.screen && unresolved)evidence.add(e.screen);
     if(e.kind==='post'){
       if(e.result==='blocked')blocked++;
       if(e.result==='invalid')continue;
       const sufficient=evidence.has('journal') || evidence.has('job') || (evidence.has('stock')&&a.condition!=='stale');
-      if(unresolved && (!sufficient||a.condition==='conflict')) { checked=false;unsafeWrites++; }
+      const over=e.units?.some((n,i)=>n>Math.max(0,job.lines[i].delivered-posted[i]));
+      for(const change of e.changes??[])posted[change.line]+=change.units;
+      if(unresolved && (!sufficient||a.condition==='conflict'||over)) { checked=false;unsafeWrites++; }
       if(e.result==='timeout'){unresolved=true;timeout=true;evidence=new Set();}
       else if(e.result==='applied' && sufficient && a.condition!=='conflict')unresolved=false;
     }
@@ -39,10 +42,13 @@ export function grade(a:Attempt){
   const handedOff=last?.kind==='handoff';
   const conflict=timeout && a.condition==='conflict';
   const justified=handedOff && conflict && evidence.has('journal') && evidence.has('stock')
-    && [job.reference,job.document,...job.lines.map(l=>l.sku)].some(x=>last.note?.toLowerCase().includes(x.toLowerCase()));
+    && Boolean(last.note?.trim()) && last.citation?.sku===job.lines[1].sku
+    && last.citation.journal===posted[1] && posted[1]>0 && last.citation.balance===0;
   const sufficient=evidence.has('job')||evidence.has('journal')||(evidence.has('stock')&&a.condition!=='stale');
   const recovery=timeout?checked && (conflict?justified:!handedOff && last?.kind==='finish' && (!unresolved||sufficient) && lines.every(l=>l.actual===l.target)):null;
-  const invariants=lines.every(l=>l.valid) && a.entries.every(e=>e.line===0||e.line===1);
+  const effects=a.events.flatMap(e=>e.kind==='post'?e.changes??[]:[]);
+  const consistent=JSON.stringify(effects)===JSON.stringify(a.entries);
+  const invariants=consistent && lines.every(l=>l.valid) && a.entries.every(e=>e.line===0||e.line===1);
   const complete=a.termination==='closed' && invariants && (conflict?justified && unsafeWrites===0 && lines.every(l=>!l.excess):
     last?.kind==='finish' && lines.every(l=>l.actual===l.target));
   return {complete,recovery,lines,invariants,blocked,unsafeWrites,escalation:handedOff?(justified?'justified':'unnecessary'):conflict?'missed':'none',
