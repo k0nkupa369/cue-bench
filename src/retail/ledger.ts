@@ -15,7 +15,13 @@ export function delivery(seed:number, workflow:Workflow='receiving') {
       delivered:i===0?12+n%5:8+n%3, ordered:i===0?16+n%5:11+n%3, priceCents:2499+100*i+10*n, destinationOpening:4+i, opening:20+2*n+i}))
   };
 }
+export type Event = {kind:'view'|'post'|'finish'|'handoff',ms:number,screen?:Screen,visible?:string,units?:Pair,
+  result?:'applied'|'blocked'|'timeout'|'invalid',changes?:Entry[],note?:string};
 export class Desk {
+  readonly seed:number;
+  readonly started=Date.now();
+  events:Event[]=[];
+  log(event:Omit<Event,'ms'>){this.events.push({...event,ms:Date.now()-this.started});}
   readonly id=randomUUID();
   readonly job:ReturnType<typeof delivery>;
   readonly condition:Condition;
@@ -28,6 +34,7 @@ export class Desk {
   note='';
   message='';
   constructor(seed:number, condition:Condition,workflow:Workflow='receiving') {
+    this.seed=seed;
     this.workflow=workflow;
     this.job=delivery(seed,workflow);
     this.condition=condition;

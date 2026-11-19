@@ -36,7 +36,10 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
         if(d.finished) return send(200,page('<h1>Job closed</h1><p>'+escape(d.note||'Submitted for review.')+'</p><a href="/">Back to workbench</a>','Job closed'));
         const name=url.searchParams.get('view')??'job';
         if(!['job','document','post','journal','stock','handoff'].includes(name))return send(404,'Unknown view');
-        return send(200,workspace(d,name as Screen));
+        const html=workspace(d,name as Screen);
+        const section=html.match(/<section>([\s\S]*?)<\/section>/)?.[1]??'';
+        d.log({kind:'view',screen:name as Screen,visible:section.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()});
+        return send(200,html);
       }
       if(req.method!=='POST'||d.finished) return send(404,'Unknown action');
       let raw='';req.setEncoding('utf8');
@@ -45,13 +48,19 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
       if(form.get('job')!==d.id || d.finished) return send(409,page('<h1>Job changed</h1><a href="/desk">Return to current job</a>','Job changed'));
       if(url.pathname==='/post'){
         if(!form.has('q0')||!form.has('q1')) return send(400,'Missing quantities');
-        try { d.post([Number(form.get('q0')),Number(form.get('q1'))]); } catch(e) { d.message=e instanceof Error?e.message:'Invalid quantities'; }
+        const units:[number,number]=[Number(form.get('q0')),Number(form.get('q1'))];
+        const before=d.entries.length, blocked=d.blocked.length;
+        try {
+          d.post(units);
+          d.log({kind:'post',units,result:d.blocked.length>blocked?'blocked':d.message.includes('timed out')?'timeout':'applied',changes:d.entries.slice(before)});
+        } catch(e) { d.message=e instanceof Error?e.message:'Invalid quantities';d.log({kind:'post',result:'invalid'}); }
         return redirect('/desk?view=post');
       }
       if(url.pathname==='/handoff'){
         const note=form.get('note')?.trim();if(!note||note.length>1200)return send(400,'Enter a discrepancy note.');
         d.note=note;
       }else if(url.pathname!=='/finish') return send(404,'Unknown action');
+      d.log({kind:d.note?'handoff':'finish',note:d.note});
       d.finished=true;return redirect('/desk');
     }catch(e){return send(400,escape(e instanceof Error?e.message:'Invalid request'));}
   });
