@@ -29,3 +29,25 @@ The runner pins model snapshots, prices, the task layout and collection source. 
 - The repeat statistic counts three-run sets where all three attempts succeed. Cost per correct job includes metered failed jobs. Missing receipts make it unavailable. Interruptions remain in the denominator.
 - The held-out comparison pairs each structured run with a screenshot run at the same seed and condition. Seed-level intervals use a cluster bootstrap. Four seeds provide limited information about generalization to new datasets.
 - `npm run research:report -- --json` emits row counts, missing IDs, cohort measurements, matched comparisons and per-attempt clean/fault differences. Published traces demonstrate these snapshots, workflows and budgets only.
+
+## Sources and reproducibility
+
+The study draws on paired clean/disrupted comparisons in [StressWeb](https://arxiv.org/abs/2604.16385), repeated-trial reliability in [τ-bench](https://arxiv.org/abs/2406.12045), multi-step work in [WorkArena](https://github.com/ServiceNow/WorkArena), and inspectable deterministic evaluation in [WebArena Verified](https://github.com/ServiceNow/webarena-verified). The fixture, records and interactions here are original fictional retail cases.
+
+Costs use standard token rates from [GPT-5.4 mini](https://developers.openai.com/api/docs/models/gpt-5.4-mini) and [GPT-5.4 nano](https://developers.openai.com/api/docs/models/gpt-5.4-nano). Reported metered cost is an estimate from provider receipts. Unknown charges are counted at their reservation ceiling in the spend audit.
+
+Verify a complete published release with `node src/retail/verify-publication.ts`. It checks every scheduled recording, ledger, screenshot digest and the spend ceiling offline. `retail/published/revisions` preserves setup attempts made before the final protocol was frozen. Those earlier requests count toward the shared budget.
+
+A browser can visit an evidence screen during a batch before the model gets another observation. The standard recovery grader checks the visit. The live analysis also reports how many recoveries still qualify when evidence pages must appear at a model observation boundary. A screenshot captures only its viewport. Retained DOM text is for audit and was not transmitted in pixel mode. These metrics cannot establish what the model attended to.
+
+Paired point estimates use available complete pairs and show both matched and scheduled counts. Cluster intervals are withheld until all pairs for the comparison are available. For conflict cases, correct completion can mean handing off the discrepancy with verified conflicting quantities.
+
+### Reproduce the paid collection
+
+Use a separate checkout for a deliberately authorized independent replication; independent checkouts each have their own budget file. The following invocations consume API credit. Run them only with the intended project key, its spend controls enabled, and Chromium installed.
+
+1. Read the design with `node src/retail/study.ts plan`. Rehearse without spending with `node src/retail/study.ts rehearse`.
+2. Run `node src/retail/study.ts calibration --allow-paid` and inspect the four attempts. Ensure each interface delivered observations and returned metered actions. A failed business task is a valid model outcome.
+3. Run `node src/retail/study.ts development --allow-paid --reviewed-calibration`, followed by the equivalent `heldout` command. An unmetered response stops new requests. Inspect the receipt ledger before explicitly retaining unknown reservations to continue. No failed attempt is silently replaced.
+4. Completed work survives a restart. If a collector process died, inspect its lock and use `--recover` to retain the last checkpoint as an interruption. One collector may own a study checkout at a time.
+5. `node src/retail/publish.ts` packages the complete local series into a new evidence directory after verification. The published directory contains fictional study data only. A release already present is preserved.

@@ -1,11 +1,15 @@
 // Package only curated synthetic study runs. Local human sessions remain private to their checkout.
 import {createHash} from 'node:crypto';
-import {existsSync,readdirSync,readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {existsSync,readdirSync,readFileSync,writeFileSync,mkdirSync,mkdtempSync,renameSync,rmSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {plan} from './study.ts';
+import {verify} from './verify-publication.ts';
 import {grade,type Attempt} from './grade.ts';
 const source=fileURLToPath(new URL('../../retail/local/study/',import.meta.url));
-const dest=fileURLToPath(new URL('../../retail/published/',import.meta.url));
+const publicDir=fileURLToPath(new URL('../../retail/published',import.meta.url));
+if(existsSync(publicDir))throw Error('Release already exists. Use verify-publication to inspect it.');
+const dest=mkdtempSync(source+'release-')+'/';
+try {
 const expected=plan();
 mkdirSync(dest+'attempts',{recursive:true});mkdirSync(dest+'screens',{recursive:true});
 const checksums:Record<string,string>={};
@@ -41,4 +45,8 @@ if(existsSync(revisions))for(const rev of readdirSync(revisions)){
 }
 copy('budget.json','budget.json');copy('manifest.json','manifest.json');
 writeFileSync(dest+'sha256.json',JSON.stringify(checksums,null,2)+'\n');
+console.log(verify(dest));
+renameSync(dest,publicDir);
 console.log('Packaged '+expected.length+' study slots and '+Object.keys(checksums).length+' checksummed artifacts.');
+
+} finally {if(existsSync(dest))rmSync(dest,{recursive:true});}

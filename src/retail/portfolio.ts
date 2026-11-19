@@ -31,9 +31,25 @@ function shell(body:string,title:string){
     .replace('</title>','</title><link rel="stylesheet" href="/portfolio.css">');
 }
 function workButtons(){return workflows.map(w=>'<form method="post" action="/start?workflow='+w+'"><button class="'+(w==='receiving'?'':'secondary')+'">Start '+w+' job</button></form>').join('');}
+function featuredPair(rows:Attempt[]){
+  const candidates=rows.filter(a=>a.origin==='openai'&&a.phase==='development'&&a.condition==='partial'
+    &&a.model.includes('mini')&&a.events.some(e=>e.result==='timeout')).sort((a,b)=>a.id.localeCompare(b.id));
+  let differentHarm:Attempt[]|undefined;
+  for(const a of candidates){
+    const peer=rows.find(b=>b.id===a.id.replace('-mini-','-nano-') && b.events.some(e=>e.result==='timeout'));
+    if(!peer)continue;
+    const left=grade(a),right=grade(peer);
+    if(left.complete!==right.complete)return [a,peer];
+    if(!differentHarm&&left.excessUnits!==right.excessUnits)differentHarm=[a,peer];
+  }
+  return differentHarm;
+}
 export function home(){
   const runs=attempts(),paid=runs.filter(r=>r.origin==='openai');
-  return shell('<div class="lead"><div><p class="eyebrow">Browser-agent reliability</p><h1>When the receipt goes missing.</h1><p class="brief">Two jacket lines arrive. A receipt times out halfway through. Can an operator settle the delivery without booking the same stock twice?</p><div class="choices">'+workButtons()+'</div></div><aside class="slip"><p class="eyebrow">Delivery note · DN-184</p><h2>Field jackets</h2><dl><div><dt>Ink</dt><dd>12 units</dd></div><div><dt>Moss</dt><dd>8 units</dd></div><div><dt>Purchase order</dt><dd>PO-731</dd></div></dl><small>Fictional receiving case · dataset 1</small></aside></div><section class="teaser"><div><p class="eyebrow">Compare the decision</p><h2>One timeout. Two responses.</h2><p>Follow the checked and blind retries from the same partial receipt. Inspect the stock change at each step.</p></div><a class="button" href="/replays">Replay both operators</a></section><p>'+link('/results','Explore the results')+' · '+paid.length+' live attempts · '+runs.filter(a=>a.origin==='scripted').length+' scripted calibrations</p>','Retail reliability workbench');
+  const pair=featuredPair(runs);
+  const replayPath=pair?url('/replays',{a:pair[0].id,b:pair[1].id}):'/replays';
+  const comparison=pair?'Two live models reached the same partial receipt. Their attempts left '+grade(pair[0]).excessUnits+' and '+grade(pair[1]).excessUnits+' excess units. Compare the decisions behind their scores.':'Follow the checked and blind scripted retries from the same partial receipt. Inspect the stock change at each step.';
+  return shell('<div class="lead"><div><p class="eyebrow">Browser-agent reliability</p><h1>When the receipt goes missing.</h1><p class="brief">Two jacket lines arrive. A receipt times out halfway through. Can an operator settle the delivery without booking the same stock twice?</p><div class="choices">'+workButtons()+'</div></div><aside class="slip"><p class="eyebrow">Delivery note · DN-184</p><h2>Field jackets</h2><dl><div><dt>Ink</dt><dd>12 units</dd></div><div><dt>Moss</dt><dd>8 units</dd></div><div><dt>Purchase order</dt><dd>PO-731</dd></div></dl><small>Fictional receiving case · dataset 1</small></aside></div><section class="teaser"><div><p class="eyebrow">Compare the decision</p><h2>One timeout. Two responses.</h2><p>'+comparison+'</p></div><a class="button" href="'+h(replayPath)+'">Replay both operators</a></section><p>'+link('/results','Explore the results')+' · '+paid.length+' live attempts · '+runs.filter(a=>a.origin==='scripted').length+' scripted calibrations</p>','Retail reliability workbench');
 }
 function decision(a:Attempt){
   const g=grade(a);
@@ -43,7 +59,7 @@ export function reveal(d:Desk){
   const a=capture(d),g=grade(a);
   return shell('<p class="eyebrow">Operator debrief / '+h(d.job.reference)+'</p><h1>Job closed.</h1><p>The case was <strong>'+h(a.condition)+'</strong>. '+(d.note?'You handed the job to a supervisor.':'You finished the job.')+'</p>'+decision(a)+
     '<section><h2>Final ledger</h2><table><thead><tr><th>Product</th><th>Requested</th><th>Posted</th></tr></thead><tbody>'+g.lines.map(l=>'<tr><th>'+h(l.sku)+'</th><td>'+l.target+'</td><td>'+l.actual+'</td></tr>').join('')+'</tbody></table></section>'+
-    '<div class="choices">'+link('/trace?id='+d.id,'Inspect your attempt')+link('/','Try another job')+'</div>','Job result');
+    '<div class="choices">'+link('/trace?id='+d.id,'Inspect your attempt')+link(url('/replays',{a:d.id}),'Compare your job with a matched run')+link('/','Try another job')+'</div>','Job result');
 }
 function filter(name:string,options:string[],chosen:string){
   return '<label>'+h(name)+'<select aria-label="'+h(name)+'" name="'+h(name)+'"><option value="">All</option>'+options.map(o=>'<option '+(o===chosen?'selected ':'')+'value="'+h(o)+'">'+h(o)+'</option>').join('')+'</select></label>';
@@ -60,13 +76,17 @@ export function results(params:URLSearchParams){
     const members=filtered.filter(r=>r.origin===origin);if(!members.length)return '';
     const scores=members.map(grade);
     const summary=summarize(members);
-    return '<div class="cohort"><p><strong>'+origin+' · '+scores.filter(g=>g.complete).length+' / '+members.length+' completed correctly</strong> · '+scores.filter(g=>g.recovery).length+' / '+scores.filter(g=>g.recovery!==null).length+' recovered · '+members.filter(r=>r.termination==='interrupted').length+' interrupted</p><dl class="cohortstats"><div><dt>Excess units</dt><dd>'+summary.excessUnits+'</dd></div><div><dt>Excess refunds</dt><dd>US$'+(summary.excessCreditCents/100).toFixed(2)+'</dd></div><div><dt>Unsafe writes</dt><dd>'+summary.unsafeWrites+'</dd></div><div><dt>Blocked writes</dt><dd>'+summary.blocked+'</dd></div><div><dt>Median / p95 time</dt><dd>'+summary.medianSeconds?.toFixed(1)+' / '+summary.p95Seconds?.toFixed(1)+'s</dd></div><div><dt>Justified handoffs</dt><dd>'+summary.justifiedHandoffs+' / '+summary.conflictCases+'</dd></div><div><dt>Unnecessary handoffs</dt><dd>'+summary.unnecessaryHandoffs+' / '+summary.solvableCases+'</dd></div>'+(origin==='openai'?'<div><dt>Metered cost per correct job</dt><dd>'+(summary.costPerCorrect===null?'—':'US$'+summary.costPerCorrect.toFixed(4))+'</dd></div>':'')+'</dl></div>';
+    return '<div class="cohort"><p><strong>'+origin+' · '+scores.filter(g=>g.complete).length+' / '+members.length+' completed correctly</strong> · '+scores.filter(g=>g.recovery).length+' / '+scores.filter(g=>g.recovery!==null).length+' recovered · '+members.filter(r=>r.termination==='interrupted').length+' interrupted</p><dl class="cohortstats"><div><dt>Excess units</dt><dd>'+summary.excessUnits+'</dd></div><div><dt>Excess refunds</dt><dd>US$'+(summary.excessCreditCents/100).toFixed(2)+'</dd></div><div><dt>Unsafe writes</dt><dd>'+summary.unsafeWrites+'</dd></div><div><dt>Blocked writes</dt><dd>'+summary.blocked+'</dd></div><div><dt>Median / p95 time</dt><dd>'+summary.medianSeconds?.toFixed(1)+' / '+summary.p95Seconds?.toFixed(1)+'s</dd></div><div><dt>Justified handoffs</dt><dd>'+summary.justifiedHandoffs+' / '+summary.conflictCases+'</dd></div><div><dt>Unnecessary handoffs</dt><dd>'+summary.unnecessaryHandoffs+' / '+summary.solvableCases+'</dd></div>'+(origin==='openai'?'<div><dt>Selected runs: US$ per correct job</dt><dd>'+(summary.costPerCorrect===null?'—':'US$'+summary.costPerCorrect.toFixed(4))+'</dd></div>':'')+'</dl></div>';
   }).join('');
   if(params.get('study')==='matched'){
     const research=analyze(rows);
+    const ledger=['local/study/budget.json','published/budget.json'].map(f=>resolve(dir,f)).find(f=>existsSync(f));
+    const receipts: {cost?:number,reserved:number}[]=ledger?JSON.parse(readFileSync(ledger,'utf8')):[];
+    const unknown=receipts.filter(c=>c.cost===undefined);
+    const accounting='<p>All research requests including setup revisions: US$'+receipts.reduce((s,c)=>s+(c.cost??0),0).toFixed(4)+' metered. '+unknown.length+' without receipts or still in flight; US$'+unknown.reduce((s,c)=>s+c.reserved,0).toFixed(4)+' reserved for them. Cohort costs below cover the selected frozen attempts only.</p>';
     const pct=(v:number|null)=>v===null?'—':(v*100).toFixed(1)+'%';
-    const paired=research.pairs.map(pair=>'<section><h2>'+h(pair.comparison)+'</h2><p>'+pair.matched+' / '+pair.planned+' matched pairs · success difference '+(pair.mean===null?'—':(pair.mean*100).toFixed(1)+' percentage points')+'</p><p>95% seed-resampling interval: '+(pair.interval?pair.interval.map(v=>pct(v)).join(' to '):'pending')+'</p>'+link(url('/results',{origin:'openai',phase:pair.phase}),'Inspect contributing attempts')+'</section>').join('');
-    return shell('<p class="eyebrow">Live model research</p><h1>Matched comparisons</h1><p>'+research.observed+' / '+research.planned+' scheduled attempts. Compare identical starting records and keep interruptions in the denominator.</p>'+paired+charts(research)+'<p>Intervals resample starting datasets. Four seeds give limited evidence about new datasets.</p>','Matched comparisons');
+    const paired=research.pairs.map(pair=>'<section><h2>'+h(pair.comparison)+'</h2><p>'+pair.matched+' / '+pair.planned+' matched pairs · success difference '+(pair.mean===null?'—':(pair.mean*100).toFixed(1)+' percentage points')+'</p><p>95% empirical seed-resampling range: '+(pair.interval?pair.interval.map(v=>pct(v)).join(' to '):'pending')+'</p>'+link(url('/results',{origin:'openai',phase:pair.phase}),'Inspect contributing attempts')+'</section>').join('');
+    return shell('<p class="eyebrow">Live model research</p><h1>Matched comparisons</h1><p>'+research.observed+' / '+research.planned+' scheduled attempts. Compare identical starting records and keep interruptions in the denominator.</p>'+accounting+paired+charts(research)+'<p>Intervals resample starting datasets. Four seeds give limited evidence about new datasets.</p>','Matched comparisons');
   }
   return shell('<p class="eyebrow">Research / Evidence</p><h1>Results explorer</h1><p><a href="/results?study=matched">View matched model and interface comparisons</a></p><form class="filters" method="get">'+fields.map(k=>filter(k,[...new Set(rows.map(r=>r[k]))].sort(),params.get(k)??'')).join('')+'<button>Apply filters</button></form>'+
     (cohorts||'<p>No attempts match these filters.</p>')+
@@ -93,7 +113,7 @@ function frameForEvent(a:Attempt,event:number){
 function decisionAnchors(a:Attempt,b:Attempt){
   const [left,right]=[a,b].map(run=>{
     const fault=run.events.findIndex(e=>e.result==='timeout');
-    return run.events.map((e,i)=>({i,key:JSON.stringify([e.kind,e.screen,e.units,e.result])})).slice(fault+1);
+    return run.events.map((e,i)=>({i,key:JSON.stringify([e.kind,e.screen,e.units,e.result,e.citation,e.note])})).slice(fault+1);
   });
   let i=0;
   while(left[i] && right[i] && left[i].key===right[i].key)i++;
@@ -104,7 +124,7 @@ export function replay(params:URLSearchParams){
   const rows=attempts(),first=rows.find(r=>r.id===(params.get('a')??'receiving-partial-1-verify'));
   if(!first)return shell('<h1>Attempt unavailable</h1>','Replay');
   const peers=rows.filter(r=>r.id!==first.id && r.workflow===first.workflow && r.seed===first.seed && r.condition===first.condition);
-  const second=peers.find(r=>r.id===params.get('b'))??peers.find(r=>r.model!==first.model)??peers[0];
+  const second=peers.find(r=>r.id===params.get('b'))??peers.find(r=>r.origin==='openai' && r.model!==first.model)??peers.find(r=>r.model!==first.model)??peers[0];
   if(!second)return trace(first.id);
   const faults=[first,second].map(a=>a.events.findIndex(e=>e.result==='timeout'));
   const diverged=decisionAnchors(first,second);
@@ -115,7 +135,7 @@ export function replay(params:URLSearchParams){
   const nav=(delta:number,label:string)=>link(url('/replays',{a:first.id,b:second.id,at,step:String(delta)}),label);
   return shell('<p class="eyebrow">'+h(first.workflow)+' / '+h(first.condition)+' / dataset '+first.seed+'</p><h1>Replay room</h1><p>Compare two operators from the same opening state. Traces align at the first timeout when observed, otherwise at the opening observation. Shorter traces hold their final frame.</p>'+
     '<form class="filters"><input type="hidden" name="a" value="'+h(first.id)+'"><label>Compare with<select name="b">'+peers.map(r=>'<option '+(r.id===second.id?'selected ':'')+'value="'+h(r.id)+'">'+h(r.id)+'</option>').join('')+'</select></label><button>Compare</button></form>'+
-    '<div class="transport">'+(step>min?nav(step-1,'← Previous'):'<span>Start</span>')+'<strong>Step '+step+'</strong>'+link(url('/replays',{a:first.id,b:second.id}),'Align at fault')+(diverged?link(url('/replays',{a:first.id,b:second.id,at:'decision'}),'First different decision'):'')+(step<max?nav(step+1,'Next →'):'<span>End</span>')+'</div><div class="compare">'+frameCard(first,left+step)+frameCard(second,right+step)+'</div><p>'+link(url('/trace',{id:first.id}),'Full first attempt')+' · '+link(url('/trace',{id:second.id}),'Full second attempt')+'</p>','Replay room');
+    '<div class="transport">'+(step>min?nav(step-1,'← Previous'):'<span>Start</span>')+'<strong>Step '+step+'</strong>'+link(url('/replays',{a:first.id,b:second.id}),'Align at fault')+(diverged?link(url('/replays',{a:first.id,b:second.id,at:'decision'}),'First different job event'):'')+(step<max?nav(step+1,'Next →'):'<span>End</span>')+'</div><div class="compare">'+frameCard(first,left+step)+frameCard(second,right+step)+'</div><p>'+link(url('/trace',{id:first.id}),'Full first attempt')+' · '+link(url('/trace',{id:second.id}),'Full second attempt')+'</p>','Replay room');
 }
 export function trace(id:string){
   const all=attempts();

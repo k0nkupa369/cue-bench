@@ -11,15 +11,26 @@ function rate(values:boolean[]){
 }
 function quantile(values:number[],q:number){
   const sorted=values.toSorted((a,b)=>a-b);
-  return sorted.length?sorted[Math.ceil(q*sorted.length)-1]:null;
+  if(!sorted.length)return null;
+  if(q===.5 && sorted.length%2===0)return (sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;
+  return sorted[Math.ceil(q*sorted.length)-1];
 }
 export function summarize(rows:Attempt[]){
-  const scores=rows.map(grade),correct=scores.filter(g=>g.complete).length;
+  const scores=rows.map(grade);
+  const observed=rows.filter(a=>a.origin==='openai').map(a=>{
+    const delivered=new Set<number>();
+    for(const f of a.frames.filter(f=>/^Observation \d+$/.test(f.action))){
+      const idx=a.events.slice(0,f.eventCount).findLastIndex(e=>e.kind==='view');
+      if(idx>=0)delivered.add(idx);
+    }
+    return grade({...a,events:a.events.filter((e,i)=>e.kind!=='view'||delivered.has(i))});
+  });
+  const correct=scores.filter(g=>g.complete).length;
   const cost=rows.reduce((n,a)=>n+a.costUsd,0);
   const unknown=rows.reduce((n,a)=>n+Number((a as Attempt&{unknownCharges?:number}).unknownCharges??0),0);
   const conflict=rows.filter(a=>a.condition==='conflict'),solvable=rows.filter(a=>a.condition!=='conflict');
   const repeated=Object.values(groupBy(rows,r=>[r.seed,r.condition,r.model,r.mode].join('/'))).filter(r=>r?.length===3);
-  return {attempts:rows.length,correct,complete:rate(scores.map(g=>g.complete)),recovery:rate(scores.filter(g=>g.recovery!==null).map(g=>g.recovery===true)),
+  return {reachedFault:scores.filter(g=>g.recovery!==null).length,recovered:scores.filter(g=>g.recovery===true).length,observationQualifiedRecoveries:observed.filter(g=>g.recovery===true).length,attempts:rows.length,correct,complete:rate(scores.map(g=>g.complete)),recovery:rate(scores.filter(g=>g.recovery!==null).map(g=>g.recovery===true)),
     damaged:scores.filter(g=>g.excessUnits>0||!g.invariants).length,excessUnits:scores.reduce((n,g)=>n+g.excessUnits,0),
     excessCreditCents:scores.reduce((n,g)=>n+g.excessCreditCents,0),blocked:scores.reduce((n,g)=>n+g.blocked,0),
     unsafeWrites:scores.reduce((n,g)=>n+g.unsafeWrites,0),
@@ -59,14 +70,14 @@ export function analyze(input:Attempt[]){
     const seedEffects=[...deltas].map(([seed,v])=>({seed,effect:v.reduce((x,y)=>x+y,0)/v.length}));
     const effects=seedEffects.map(s=>s.effect);
     pairs.push({phase,comparison,matched,planned:aJobs.length,seedEffects,
-      mean:effects.length?effects.reduce((x,y)=>x+y,0)/effects.length:null,interval:interval(effects)});
+      mean:effects.length?effects.reduce((x,y)=>x+y,0)/effects.length:null,interval:matched===aJobs.length?interval(effects):null});
   }
   const disruption=[];
   for(const j of jobs.filter(j=>j.phase!=='calibration'&&j.condition!=='clean')){
     const clean=jobs.find(k=>k.phase===j.phase&&k.seed===j.seed&&k.repeat===j.repeat&&k.model===j.model&&k.mode===j.mode&&k.condition==='clean');
     const a=live.get(j.id),b=clean&&live.get(clean.id);
     if(a&&b)disruption.push({fault:j.condition,model:j.model,mode:j.mode,phase:j.phase,attempt:a.id,control:b.id,
-      deltaSuccess:Number(grade(a).complete)-Number(grade(b).complete),deltaActions:a.actions-b.actions});
+      deltaSuccess:Number(grade(a).complete)-Number(grade(b).complete),deltaActions:a.actions-b.actions,deltaSeconds:(a.durationMs-b.durationMs)/1000});
   }
   return {planned:jobs.length,observed:rows.length,missing:jobs.filter(j=>!live.has(j.id)).map(j=>j.id),groups,pairs,disruption};
 }
