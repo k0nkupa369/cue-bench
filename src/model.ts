@@ -16,7 +16,7 @@ export const recording = z.object({
   configuration: z.object({driver: z.string().min(1), model:z.string().optional(), prompt:z.string().optional(),
     maxActions:z.number().int().positive().optional(), maxMillis:z.number().int().positive().optional()}),
   stopReason:z.enum(['completed','action-limit','time-limit','interrupted']).optional(),
-  requested: order, initialView: z.string().min(1), steps: z.array(z.object({action, view: z.string().min(1), lookupResult: z.string().optional()})),
+  requested: order, initialView: z.string().min(1), steps: z.array(z.object({action, observationPending:z.boolean().optional(), view: z.string().min(1), lookupResult: z.string().optional()})),
   orders: z.array(order.extend({item:z.string().min(1)}))
  }).refine(run => run.steps.length > 0 || (run.origin !== 'scripted' && run.stopReason !== undefined),
   'Missing recording steps');
@@ -34,7 +34,7 @@ export function score(run: Recording) {
     const message = lookupMessage(run.requested.reference,run.scenario === 'saved');
     const checked = first !== undefined && run.steps.slice(first + 1,retry).some(step =>
       step.action.type === 'lookup' && step.lookupResult === message &&
-      step.view.split('\n').at(-1)?.trim() === '- status: ' + message);
+      visibleLookupMatches(step.view, message));
     const expectedCount = run.scenario === 'saved' ? 1 : 2;
     recovery = submissions.length === expectedCount && checked ? 'pass' : 'fail';
   }
@@ -43,4 +43,11 @@ export function score(run: Recording) {
 
 export function lookupMessage(reference: string, found: boolean) {
   return (found ? 'Found order ' : 'No order found for ') + reference;
+}
+
+function visibleLookupMatches(view: string, message: string) {
+  // Chrome normalizes whitespace in its accessibility tree and quotes some YAML scalars.
+  const normalized = message.replace(/\s+/g,' ').trim();
+  const line = view.split('\n').at(-1)?.trim();
+  return line === '- status: ' + normalized || line === '- status: ' + JSON.stringify(normalized);
 }

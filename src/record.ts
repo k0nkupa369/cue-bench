@@ -12,9 +12,16 @@ export async function perform(page: Page, action: Action) {
     const lookup = action.type === 'lookup';
     const button = page.getByRole('button',{name:lookup ? 'Find order' : 'Submit order'});
     const route = lookup ? '/lookup' : '/orders';
+    const click = () => action.type === 'submit' && action.via === 'enter'
+      ? page.getByLabel('Reference',{exact:true}).press('Enter') : button.click();
+    const invalid = page.locator((lookup ? '#lookup' : '#entry') + ' :invalid').first();
+    if (await invalid.count()) {
+      await click();
+      const message = await invalid.evaluate(el => (el as HTMLInputElement).validationMessage);
+      return {action, view:await page.locator('main').ariaSnapshot() + '\nBrowser validation: ' + message};
+    }
     const response = page.waitForResponse(r => new URL(r.url()).pathname === route);
-    await Promise.all([response, action.type === 'submit' && action.via === 'enter'
-      ? page.getByLabel('Reference',{exact:true}).press('Enter') : button.click()]);
+    await Promise.all([response,click()]);
     const message = await (await response).text();
     const output = page.locator(lookup ? '#result' : '#status');
     await output.getByText(message,{exact:true}).waitFor();
