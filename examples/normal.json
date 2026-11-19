@@ -1,0 +1,46 @@
+{
+  "taskVersion": 1,
+  "checkerVersion": 1,
+  "scenario": "normal",
+  "origin": "scripted",
+  "configuration": {
+    "driver": "Chromium / Playwright"
+  },
+  "requested": {
+    "reference": "CUE-203d7688-c191-4a94-80b7-41596314ecbc",
+    "item": "Field notebook",
+    "quantity": 2
+  },
+  "initialView": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\"\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"1\"\n  - button \"Submit order\"\n  - status",
+  "steps": [
+    {
+      "action": {
+        "type": "fill",
+        "field": "Reference",
+        "value": "CUE-203d7688-c191-4a94-80b7-41596314ecbc"
+      },
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-203d7688-c191-4a94-80b7-41596314ecbc\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"1\"\n  - button \"Submit order\"\n  - status"
+    },
+    {
+      "action": {
+        "type": "fill",
+        "field": "Quantity",
+        "value": "2"
+      },
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-203d7688-c191-4a94-80b7-41596314ecbc\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status"
+    },
+    {
+      "action": {
+        "type": "submit"
+      },
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-203d7688-c191-4a94-80b7-41596314ecbc\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: \"Order saved: CUE-203d7688-c191-4a94-80b7-41596314ecbc\""
+    }
+  ],
+  "orders": [
+    {
+      "reference": "CUE-203d7688-c191-4a94-80b7-41596314ecbc",
+      "item": "Field notebook",
+      "quantity": 2
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order desk</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f0f0eb;color:#182a36;font:1rem/1.5 system-ui,sans-serif}
+main{max-width:38rem;margin:clamp(1rem,9vh,6rem) auto;padding:clamp(1.25rem,5vw,3rem);background:#fffefa;border:1px solid #bfc6c3;border-top:5px solid #213e50}
+h1{font:600 2.75rem Georgia,serif;letter-spacing:-.04em;margin:0 0 1.6rem;border-bottom:1px solid #bfc6c3;padding-bottom:1rem}
+form{display:grid;gap:1rem}label{display:grid;gap:.35rem;font-weight:600}.row{display:grid;grid-template-columns:2fr 1fr;gap:1rem}
+input,select,button{font:inherit;padding:.65rem .8rem;border:1px solid #75838a;border-radius:4px;min-width:0;width:100%;background:white;color:inherit}
+button{width:fit-content;background:#184b74;color:white;border:0;cursor:pointer;font-weight:650}button:hover{background:#123954}button:active{transform:translateY(1px)}:focus-visible{outline:3px solid #2869a2;outline-offset:3px}
+output{display:block;font-weight:600}output:not(:empty){margin-top:1rem;padding:.8rem;border-left:3px solid #345971;background:#edf2f4}
+@media(max-width:28rem){main{margin:1rem}.row{grid-template-columns:1fr}}
+</style><main><h1>Order desk</h1>
+<form id="entry"><label>Reference<input name="reference" required maxlength="80" autocomplete="off"></label>
+<div class="row"><label>Item<select name="item"><option>Field notebook</option></select></label><label>Quantity<input name="quantity" type="number" value="1" min="1" max="99" required></label></div><button>Submit order</button></form>
+<output id="status" aria-live="polite"></output></main>
+<script>
+document.querySelector('#entry').onsubmit=async event=>{
+  event.preventDefault();
+  const data=Object.fromEntries(new FormData(event.target));
+  data.quantity=Number(data.quantity);
+  const response=await fetch('/orders',{method:'POST',body:JSON.stringify(data)});
+  document.querySelector('#status').textContent=await response.text();
+};
+</script></html>
