@@ -10,7 +10,8 @@
     "record": "node src/record.ts",
     "replay": "node src/replay.ts",
     "fixture": "node src/serve.ts",
-    "agent": "node src/agent.ts"
+    "agent": "node src/agent.ts",
+    "demo": "node src/demo.ts"
   },
   "dependencies": {
     "playwright": "^1.65.1",
