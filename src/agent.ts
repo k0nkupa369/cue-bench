@@ -1,4 +1,4 @@
-import {writeFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {chromium} from 'playwright';
 import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -9,9 +9,17 @@ import {action, checkerVersion, lookupMessage, recording, type Action, type Reco
 
 import {claimAttempt, prompt, maxActions, maxMillis, readLock, slotIds} from './protocol.ts';
 const args = process.argv.slice(2);
-const mode = z.enum(['stand-in','limit','disconnect','deadline','validation','openai']).parse(args[0] ?? 'stand-in');
+const mode = z.enum(['stand-in','limit','disconnect','deadline','validation','pilot','openai']).parse(args[0] ?? 'stand-in');
 const scenario = z.enum(['normal','saved','lost']).parse(args[1] ?? 'normal');
-const live = mode === 'openai';
+const pilot = mode === 'pilot';
+const live = mode === 'openai' || pilot;
+const pilotModel = 'gpt-5.4-mini-2026-03-17';
+const pilotUsage = {requests:0, meteredResponses:0, inputTokens:0, cachedInputTokens:0, outputTokens:0, estimatedTokenCostUsd:0};
+if (pilot && (scenario !== 'normal' || args.includes('--baseline-id'))) throw Error('The pilot is one normal-case attempt outside the baseline.');
+if (pilot && !args.includes('--allow-paid')) {
+  console.log('Pilot preflight: one normal order, '+pilotModel+', up to 8 standard requests, 30 browser actions, 3 minutes, US$5 maximum. No request sent.');
+  process.exit(0);
+}
 const idIndex = args.indexOf('--baseline-id');
 const baselineId = idIndex === -1 ? undefined : args[idIndex+1];
 if (idIndex !== -1 && (!live || !baselineId ||
@@ -20,7 +28,7 @@ if (idIndex !== -1 && (!live || !baselineId ||
 }
 const lock = baselineId ? readLock('baseline/frozen.json') : undefined;
 if (lock && lock.checkerVersion !== checkerVersion) throw Error('Frozen checker differs from collection checker');
-const model = lock?.model ?? (live ? process.env.OPENAI_MODEL : 'scripted-provider');
+const model = pilot ? pilotModel : lock?.model ?? (live ? process.env.OPENAI_MODEL : 'scripted-provider');
 if (!model || (live && (!process.env.OPENAI_API_KEY || !args.includes('--allow-paid')))) {
   throw Error('Live mode requires --allow-paid, an API key and a frozen or explicitly selected model.');
 }
@@ -49,15 +57,34 @@ async function decide(requested: Recording['requested'], steps: Recording['steps
     if (steps.at(-1)?.lookupResult === lookupMessage(requested.reference,false)) return [{type:'submit'}];
     return [];
   }
+  if (pilot) {
+    if (pilotUsage.requests >= 8) throw Error('Pilot request cap reached');
+    if (!pilotUsage.requests) {
+      mkdirSync('.pilot',{recursive:true});
+      writeFileSync('.pilot/attempt.claim',new Date().toISOString(),{flag:'wx'});
+    }
+    pilotUsage.requests++;
+  }
   const response = await fetch('https://api.openai.com/v1/responses',{
     method:'POST', signal, headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},
-    body:JSON.stringify({model,store:false,instructions:prompt,tools:functions,max_output_tokens:1024,
+    body:JSON.stringify({model,...(pilot ? {service_tier:'default'} : {}),store:false,instructions:prompt,tools:functions,max_output_tokens:1024,
       input:JSON.stringify({requested, initialView, history:steps.map(({action,view})=>({action,view}))})})
   });
   if (!response.ok) throw Error('OpenAI returned HTTP '+response.status);
+  const raw = await response.json();
+  if (pilot) {
+    const usage = z.object({input_tokens:z.number(),output_tokens:z.number(),
+      input_tokens_details:z.object({cached_tokens:z.number()})}).parse(raw.usage);
+    pilotUsage.meteredResponses++;
+    pilotUsage.inputTokens += usage.input_tokens;
+    pilotUsage.cachedInputTokens += usage.input_tokens_details.cached_tokens;
+    pilotUsage.outputTokens += usage.output_tokens;
+    pilotUsage.estimatedTokenCostUsd = ((pilotUsage.inputTokens-pilotUsage.cachedInputTokens)*0.75
+      + pilotUsage.cachedInputTokens*0.075 + pilotUsage.outputTokens*4.5)/1e6;
+  }
   const payload = z.object({status:z.literal('completed'),output:z.array(z.object({
     type:z.string(),name:z.string().optional(),arguments:z.string().optional()
-  }))}).parse(await response.json());
+  }))}).parse(raw);
   return payload.output.filter(item=>item.type === 'function_call').map(item=>
     action.parse({...JSON.parse(item.arguments ?? '{}'),type:item.name}));
 }
@@ -106,6 +133,9 @@ try {
   run.stopReason = signal.aborted || performance.now()-started >= budget ? 'time-limit' : 'interrupted';
   console.error(run.stopReason === 'time-limit' ? 'Time limit reached' : 'Attempt interrupted: '+(error instanceof Error ? error.name : 'unknown error'));
 } finally { fixture.close(); }
+if (pilot) run.pilotUsage = pilotUsage;
 const output = JSON.stringify(recording.parse(run),null,2);
 if (archive) writeFileSync(archive,output+'\n',{flag:'wx'});
+if (pilot && pilotUsage.requests) writeFileSync('.pilot/recording.json',output+'\n',{flag:'wx'});
 console.log(output);
+if (pilot && run.stopReason !== 'completed') process.exitCode = 1;

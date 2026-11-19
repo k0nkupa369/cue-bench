@@ -53,7 +53,7 @@ node src/replay.ts my-attempt.json
 
 The runner exposes the local form through labelled browser controls. It sends the requested order, actions, and visible accessibility snapshots to its decision provider. The checker reads the final fixture records independently. Each live attempt allows 30 individual actions and three minutes. A batch still counts one action at a time. The stand-in also supports `limit`, `deadline` (shortened clock), `disconnect`, and `validation` to demonstrate those paths without credentials.
 
-The OpenAI Responses adapter requires explicit paid mode. Live verification, spend, and model performance are pending. The public examples and CI use no API credentials.
+The OpenAI Responses adapter requires explicit paid mode. Live verification is tracked separately through the paid pilot. The public examples and CI use no API credentials.
 
 ## Submit a recording
 
@@ -76,3 +76,11 @@ node src/report.ts examples/report/attempts.json
 Before any future authorized collection, freeze the configuration with `npm run report -- freeze <dated-model-id>`. This creates the lock once. The collector accepts a reserved ID via `--baseline-id` and uses the frozen model, prompt, and budgets. Archive each recording and explicitly register its ID, relative path and SHA-256 in the maintained manifest. A replacement gets a new ID such as `lost-01-r1` and links to the interrupted attempt. Replaying does not register an attempt. For corrections, retain the previous checker version, score, and reason beside the same recording digest. Keep pilot runs and contributed examples outside this manifest.
 
 Use a single collection checkout. Before a paid baseline attempt starts, the collector claims its ID exclusively in that checkout. It preserves the claim across interruptions and archives the resulting recording alongside it. The report shows unregistered claims. Register an interrupted recording before collecting its replacement. Separate checkouts do not share claims.
+
+## Paid pilot
+
+Run `npm run pilot` to preview the limits for free. With the OpenAI project hard limit and spend alert set, `npm run pilot -- --allow-paid` uses the configured API key for one normal-order attempt. It needs Chromium installed as described above. The attempt stays outside all nine baseline slots.
+
+The runner pins GPT-5.4 mini on standard processing and allows eight requests, 1,024 output tokens per request, 30 browser actions and three minutes. Even charging the entire 400,000-token context on each request at the uncached input rate plus maximum output gives less than US$2.44 in model usage, inside the US$5 pilot ceiling. Recheck rates before running if pricing changes. [Model pricing](https://developers.openai.com/api/docs/models/gpt-5.4-mini)
+
+The runner claims the attempt locally before its first request. It saves the recording under `.pilot/recording.json`, including requested and metered call counts, token counts, and estimated token cost for returned usage. A missing usage receipt leaves that call's cost unknown. Use the final fixture records to verify whether the requested order was saved. No pilot data enters the public baseline.
