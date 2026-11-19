@@ -1,0 +1,46 @@
+{
+  "taskVersion": 1,
+  "checkerVersion": 1,
+  "scenario": "saved",
+  "origin": "scripted",
+  "configuration": {
+    "driver": "Chromium / Playwright"
+  },
+  "requested": {
+    "reference": "CUE-628083df-f116-4ef7-adfa-b65274e745a9",
+    "item": "Field notebook",
+    "quantity": 2
+  },
+  "initialView": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\"\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"1\"\n  - button \"Submit order\"\n  - status\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status",
+  "steps": [
+    {
+      "action": {
+        "type": "fill",
+        "field": "Reference",
+        "value": "CUE-628083df-f116-4ef7-adfa-b65274e745a9"
+      },
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-628083df-f116-4ef7-adfa-b65274e745a9\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"1\"\n  - button \"Submit order\"\n  - status\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
+    },
+    {
+      "action": {
+        "type": "fill",
+        "field": "Quantity",
+        "value": "2"
+      },
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-628083df-f116-4ef7-adfa-b65274e745a9\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
+    },
+    {
+      "action": {
+        "type": "submit"
+      },
+      "view": "- main:\n  - heading \"Order desk\" [level=1]\n  - text: Reference\n  - textbox \"Reference\": CUE-628083df-f116-4ef7-adfa-b65274e745a9\n  - text: Item\n  - combobox \"Item\":\n    - option \"Field notebook\" [selected]\n  - text: Quantity\n  - spinbutton \"Quantity\": \"2\"\n  - button \"Submit order\"\n  - status: Submission timed out.\n  - heading \"Order lookup\" [level=2]\n  - text: Order reference\n  - textbox \"Order reference\"\n  - button \"Find order\"\n  - status"
+    }
+  ],
+  "orders": [
+    {
+      "reference": "CUE-628083df-f116-4ef7-adfa-b65274e745a9",
+      "item": "Field notebook",
+      "quantity": 2
+    }
+  ]
+}

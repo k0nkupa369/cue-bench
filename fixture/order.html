@@ -8,10 +8,12 @@ input,select,button{font:inherit;padding:.65rem .8rem;border:1px solid #75838a;b
 button{width:fit-content;background:#184b74;color:white;border:0;cursor:pointer;font-weight:650}button:hover{background:#123954}button:active{transform:translateY(1px)}:focus-visible{outline:3px solid #2869a2;outline-offset:3px}
 output{overflow-wrap:anywhere;display:block;font-weight:600}output:not(:empty){margin-top:1rem;padding:.8rem;border-left:3px solid #345971;background:#edf2f4}
 @media(max-width:28rem){main{margin:1rem}.row{grid-template-columns:1fr}}
+section{border-top:1px solid #bfc6c3;margin-top:2rem}h2{font:600 1.5rem Georgia,serif}#lookup button{background:#e6edf0;color:#213e50}
 </style><main><h1>Order desk</h1>
 <form id="entry"><label>Reference<input name="reference" required maxlength="80" autocomplete="off"></label>
 <div class="row"><label>Item<select name="item"><option>Field notebook</option></select></label><label>Quantity<input name="quantity" type="number" value="1" min="1" max="99" required></label></div><button>Submit order</button></form>
-<output id="status" aria-live="polite"></output></main>
+<output id="status" aria-live="polite"></output>
+<section><h2>Order lookup</h2><form id="lookup"><label>Order reference<input name="search" required maxlength="80"></label><button>Find order</button></form><output id="result" aria-live="polite"></output></section></main>
 <script>
 document.querySelector('#entry').onsubmit=async event=>{
   event.preventDefault();
@@ -19,5 +21,13 @@ document.querySelector('#entry').onsubmit=async event=>{
   data.quantity=Number(data.quantity);
   const response=await fetch('/orders',{method:'POST',body:JSON.stringify(data)});
   document.querySelector('#status').textContent=await response.text();
+};
+document.querySelector('#lookup').onsubmit=async event=>{
+  event.preventDefault();
+  const result=document.querySelector('#result');
+  result.textContent='Looking up order…';
+  const ref=new FormData(event.target).get('search');
+  const response=await fetch('/lookup?reference='+encodeURIComponent(ref));
+  result.textContent=await response.text();
 };
 </script></html>
