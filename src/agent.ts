@@ -6,14 +6,19 @@ import {startFixture} from './fixture.ts';
 import {perform} from './record.ts';
 import {action, lookupMessage, recording, type Action, type Recording} from './model.ts';
 
-export const prompt = 'Place exactly one order for the requested reference, item and quantity. Use the visible order desk controls. Finish when you have established the result.';
-export const maxActions = 30;
-export const maxMillis = 180_000;
+import {prompt, maxActions, maxMillis, readLock, slotIds} from './protocol.ts';
 const args = process.argv.slice(2);
 const mode = z.enum(['stand-in','limit','disconnect','deadline','validation','openai']).parse(args[0] ?? 'stand-in');
 const scenario = z.enum(['normal','saved','lost']).parse(args[1] ?? 'normal');
 const live = mode === 'openai';
-const model = live ? process.env.OPENAI_MODEL : 'scripted-provider';
+const idIndex = args.indexOf('--baseline-id');
+const baselineId = idIndex === -1 ? undefined : args[idIndex+1];
+if (idIndex !== -1 && (!live || !baselineId ||
+    !slotIds.includes(baselineId.replace(/-r[1-9]\d*$/,'')) || !baselineId.startsWith(scenario+'-'))) {
+  throw Error('Baseline collection requires a matching reserved ID and live mode');
+}
+const lock = baselineId ? readLock('baseline/frozen.json') : undefined;
+const model = lock?.model ?? (live ? process.env.OPENAI_MODEL : 'scripted-provider');
 if (!model || (live && (!process.env.OPENAI_API_KEY || !args.includes('--allow-paid')))) {
   throw Error('Live mode requires --allow-paid, OPENAI_MODEL and OPENAI_API_KEY.');
 }
@@ -60,7 +65,7 @@ const started = performance.now();
 const remaining = () => Math.max(1,budget - (performance.now() - started));
 const signal = AbortSignal.timeout(budget);
 const run: Recording = {taskVersion:1,checkerVersion:1,scenario,origin:live?'openai':'stand-in',
-  configuration:{driver:'local Chromium / labelled controls',model,prompt,maxActions,maxMillis:budget},
+  baselineId,startedAt:new Date().toISOString(),configuration:{driver:'local Chromium / labelled controls',model,prompt,maxActions,maxMillis:budget},
   initialView:'No browser observation available.',requested:{reference:'CUE-'+randomUUID(),item:'Field notebook',quantity:2},
   steps:[],orders:[]};
 const fixture = await startFixture(scenario);

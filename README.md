@@ -62,3 +62,13 @@ The OpenAI Responses adapter requires explicit paid mode. Live verification, spe
 An offline score describes the supplied recording. The format does not authenticate its source. The tasks exercise a fictional form with a definitive lookup. General web-agent reliability requires broader evidence.
 
 Original code and fictional fixtures are available under the [MIT license](LICENSE).
+
+## Baseline report
+
+Run `npm run report` for the nine reserved slots, or `node src/report.ts --json` for machine-readable results. All nine start unrun. The [fictional manifest](examples/report/attempts.json) illustrates an interruption, a replacement, and an earlier checker score on the same recording:
+
+```sh
+node src/report.ts examples/report/attempts.json
+```
+
+Before any future authorized collection, freeze the configuration with `npm run report -- freeze <dated-model-id>`. This creates the lock once. The collector accepts a reserved ID via `--baseline-id` and uses the frozen model, prompt, and budgets. Archive each recording and explicitly register its ID, relative path and SHA-256 in the maintained manifest. A replacement gets a new ID such as `lost-01-r1` and links to the interrupted attempt. Replaying does not register an attempt. For corrections, retain the previous checker version, score, and reason beside the same recording digest. Keep pilot runs and contributed examples outside this manifest.

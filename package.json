@@ -11,7 +11,8 @@
     "replay": "node src/replay.ts",
     "fixture": "node src/serve.ts",
     "agent": "node src/agent.ts",
-    "demo": "node src/demo.ts"
+    "demo": "node src/demo.ts",
+    "report": "node src/report.ts"
   },
   "dependencies": {
     "playwright": "^1.65.1",

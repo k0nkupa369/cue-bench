@@ -15,6 +15,7 @@ export const recording = z.object({
   origin: z.enum(['scripted','stand-in','openai']),
   configuration: z.object({driver: z.string().min(1), model:z.string().optional(), prompt:z.string().optional(),
     maxActions:z.number().int().positive().optional(), maxMillis:z.number().int().positive().optional()}),
+  baselineId:z.string().optional(),startedAt:z.iso.datetime().optional(),
   stopReason:z.enum(['completed','action-limit','time-limit','interrupted']).optional(),
   requested: order, initialView: z.string().min(1), steps: z.array(z.object({action, observationPending:z.boolean().optional(), view: z.string().min(1), lookupResult: z.string().optional()})),
   orders: z.array(order.extend({item:z.string().min(1)}))

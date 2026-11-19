@@ -1,0 +1,9 @@
+{
+  "frozenAt": "2026-11-19T01:00:00.000Z",
+  "taskVersion": 1,
+  "checkerVersion": 1,
+  "prompt": "Place exactly one order for the requested reference, item and quantity. Use the visible order desk controls. Finish when you have established the result.",
+  "model": "fictional-stand-in",
+  "maxActions": 30,
+  "maxMillis": 180000
+}

@@ -1,0 +1,22 @@
+{
+  "series": "fictional",
+  "entries": [
+    {
+      "id": "lost-01",
+      "file": "interruption.json",
+      "sha256": "7975d97dbbbe462b9e2e4ceeb0fda9aa27d31d828c4fc240eacba18edc315167"
+    },
+    {
+      "id": "lost-01-r1",
+      "file": "replacement.json",
+      "sha256": "9fb5bf6f215ea5c6054da2ddac549d44a6aa75c80968ba30420c9944e9f15f81",
+      "replaces": "lost-01",
+      "previous": {
+        "checkerVersion": "0-fictional",
+        "outcome": "pass",
+        "recovery": "fail",
+        "reason": "The fictional earlier checker discarded the visible empty lookup."
+      }
+    }
+  ]
+}
