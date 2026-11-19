@@ -3,7 +3,7 @@ export const escape = (s:string|number)=>String(s).replace(/[&<>"']/g,c=>({'&':'
 const receivingTitles:Record<Screen,string>={job:'Purchase order',document:'Delivery note',journal:'Receipt journal',stock:'Inventory',post:'Post receipt',handoff:'Handoff'};
 export function jobHistory(jobs:PriorJob[]){
   if(!jobs.length)return '';
-  return '<div><h3>Earlier jobs this shift</h3><ol>'+jobs.map(job=>'<li><a href="/trace?id='+encodeURIComponent(job.id)+'">'+escape(job.reference)+'</a> · '+escape(job.workflow)+'</li>').join('')+'</ol></div>';
+  return '<div><h3>Earlier jobs this shift</h3><ol>'+jobs.map(job=>'<li><a href="/trace?id='+encodeURIComponent(job.id)+'">'+escape(job.reference)+'</a> · '+(job.document?escape(job.document)+' · ':'')+escape(job.workflow)+'</li>').join('')+'</ol></div>';
 }
 export function page(body:string,title:string) {
   return '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+escape(title)+' · Cue Bench</title><link rel="stylesheet" href="/style.css"><header><a href="/" class="brand">Cue Bench</a><span>Retail operations lab</span></header><main>'+body+'</main></html>';

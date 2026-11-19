@@ -15,7 +15,7 @@ export function delivery(seed:number, workflow:Workflow='receiving') {
       delivered:i===0?12+n%5:8+n%3, ordered:i===0?16+n%5:11+n%3, priceCents:2499+100*i+10*n, destinationOpening:4+i, opening:20+2*n+i}))
   };
 }
-export type PriorJob = {id:string, reference:string, workflow:Workflow};
+export type PriorJob = {id:string, reference:string, document?:string, workflow:Workflow};
 export type LocationBalance = {sku:string, wharf:number, depot:number};
 export type Event = {kind:'view'|'post'|'finish'|'handoff',ms:number,screen?:Screen,visible?:string,units?:Pair,
   result?:'applied'|'blocked'|'timeout'|'invalid',changes?:Entry[],note?:string,citation?:{sku:string,journal:number,balance:number}};
@@ -46,7 +46,7 @@ export class Desk {
       next.job.lines[i].opening=balance.wharf;
       next.job.lines[i].destinationOpening=balance.depot;
     }
-    next.priorJobs=[...this.priorJobs,{id:this.id,reference:this.job.reference,workflow:this.workflow}];
+    next.priorJobs=[...this.priorJobs,{id:this.id,reference:this.job.reference,document:this.job.document,workflow:this.workflow}];
     return next;
   }
   readonly started=Date.now();

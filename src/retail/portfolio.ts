@@ -1,7 +1,7 @@
 import {existsSync,readdirSync,readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {conditions, workflows, type Desk} from './ledger.ts';
+import {delivery,conditions, workflows, type Desk} from './ledger.ts';
 import {charts} from './charts.ts';
 import {analyze,summarize} from './analysis.ts';
 import {capture,grade,type Attempt} from './grade.ts';
@@ -148,7 +148,9 @@ export function trace(id:string,archive=defaultArchive){
   const all=attempts(archive);
   const a=all.find(r=>r.id===id);
   if(!a)return shell('<h1>Attempt unavailable</h1>','Attempt');
-  return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(a.termination)+'</p>'+decision(a)+jobHistory(a.priorJobs??[])+(a.openingBalances?'<p>Opening stock (Wharf / Depot) · '+a.openingBalances.map(b=>h(b.sku)+' '+b.wharf+' / '+b.depot).join(' · ')+'</p>':'')+
+  const job=delivery(a.seed,a.workflow),lines=grade(a).lines;
+  const document='<section><h2>'+h(job.reference)+' · '+h(job.document)+'</h2><table><thead><tr><th>Product</th><th>Ordered / paid</th><th>Requested</th><th>Posted</th></tr></thead><tbody>'+job.lines.map((l,i)=>'<tr><th>'+h(l.name)+'<small>'+h(l.sku)+'</small></th><td>'+l.ordered+'</td><td>'+l.delivered+'</td><td>'+lines[i].actual+'</td></tr>').join('')+'</tbody></table></section>';
+  return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(a.termination)+'</p>'+decision(a)+document+jobHistory(a.priorJobs??[])+(a.openingBalances?'<p>Opening stock (Wharf / Depot) · '+a.openingBalances.map(b=>h(b.sku)+' '+b.wharf+' / '+b.depot).join(' · ')+'</p>':'')+
     '<p>'+a.actions+' actions · '+(a.durationMs/1000).toFixed(1)+' seconds · '+a.tokens+' tokens · US$'+a.costUsd.toFixed(5)+' metered</p><p>'+(all.some(r=>sameOpening(a,r))?link(url('/replays',{a:id}),'Compare matched attempts'):'No matched peer has been recorded.')+'</p><section><h2>Recorded browser frames</h2>'+frames(a).map((f,i)=>'<details><summary>'+i+' · '+h(f.action)+'</summary>'+frameCard(a,i)+'</details>').join('')+'</section><section><h2>Decision history</h2>'+a.events.map(e=>'<details><summary>'+e.ms+' ms · '+h(e.kind)+' '+h(e.screen??e.result??'')+'</summary><pre>'+h(JSON.stringify(e,null,2))+'</pre></details>').join('')+'</section>','Attempt record');
 }
 export function screenshot(name:string){
