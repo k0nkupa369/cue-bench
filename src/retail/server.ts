@@ -12,20 +12,24 @@ export async function startRetail(options:{seed?:number,condition?:Condition}={}
     const url=new URL(req.url??'/','http://localhost');
     const send=(status:number,body:string,type='text/html; charset=utf-8')=>res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store'}).end(body);
     const redirect=(location:string)=>res.writeHead(303,{Location:location}).end();
-    const token=req.headers.cookie?.match(/(?:^|; )desk=([\w-]+)/)?.[1];
+    const cookie='desk_'+req.socket.localPort;
+    const token=req.headers.cookie?.split(';').map(value=>value.trim()).find(value=>value.startsWith(cookie+'='))?.slice(cookie.length+1);
     const d=token?sessions.get(token):undefined;
     try{
       if(req.method==='GET' && url.pathname==='/style.css') return send(200,readFileSync(new URL('../../retail/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET' && url.pathname==='/') return send(200,page('<p class="eyebrow">Operations benchmark</p><h1>The receiving desk</h1><p class="brief">A delivery arrives with two product lines. Reconcile it against the purchase order and leave the warehouse books correct.</p><form method="post" action="/start"><button>Start receiving job</button></form>','Retail operations'));
       if(req.method==='POST' && req.headers.origin!=='http://'+req.headers.host) return send(403,'Origin rejected');
       if(req.method==='POST' && url.pathname==='/start'){
+        if(token) sessions.delete(token);
+        if(sessions.size>=500) for(const [id,old] of sessions) if(old.finished || Date.now()-old.lastSeen>3600000) sessions.delete(id);
         if(sessions.size>=500) return send(503,'Session capacity reached');
         const id=randomUUID();
         sessions.set(id,new Desk(options.seed??randomInt(1,5),options.condition??conditions[randomInt(conditions.length)]));
-        res.setHeader('Set-Cookie','desk='+id+'; HttpOnly; SameSite=Strict; Path=/');
+        res.setHeader('Set-Cookie',cookie+'='+id+'; HttpOnly; SameSite=Strict; Path=/');
         return redirect('/desk');
       }
       if(!d) return redirect('/');
+      d.lastSeen=Date.now();
       if(req.method==='GET' && url.pathname==='/desk'){
         if(d.finished) return send(200,page('<h1>Job closed</h1><p>'+escape(d.note||'Submitted for review.')+'</p><a href="/">Back to workbench</a>','Job closed'));
         const name=url.searchParams.get('view')??'job';

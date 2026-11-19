@@ -16,6 +16,7 @@ export class Desk {
   readonly job:ReturnType<typeof delivery>;
   readonly condition:Condition;
   readonly entries:Entry[]=[];
+  lastSeen=Date.now();
   posts=0;
   finished=false;
   note='';

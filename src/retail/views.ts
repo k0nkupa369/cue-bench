@@ -18,12 +18,12 @@ export function workspace(d:Desk,screen:Screen) {
       body='<p>Delivery '+job.document+' · Matched to '+job.reference+'</p>'+table('Delivered','Unit',job.lines.map(l=>[l.delivered,'each']));
       break;
     case 'journal':
-      body=conflict?'<p role="status">Journal reconciliation pending. Two warehouse records disagree. A supervisor must verify posted units.</p>':
+      body=conflict?'<p role="status">Unverified journal export. Compare the independently captured warehouse count.</p>'+table('Posted units','Document',job.lines.map((_,i)=>[totals[i],job.document])):
         table('Posted units','Document',job.lines.map((_,i)=>[totals[i],job.document]));
       break;
     case 'stock':
-      body='<p>'+(conflict?'Warehouse count unavailable during reconciliation.':stale?'Snapshot captured before this delivery.':'Current warehouse count.')+'</p>'+
-        table('Opening','On hand',job.lines.map((l,i)=>[l.opening,conflict?'Unverified':l.opening+(stale?0:totals[i])]));
+      body='<p>'+(conflict?'Independent count at posting time. Neither source is certified during reconciliation.':stale?'Snapshot captured before this delivery.':'Current warehouse count.')+'</p>'+
+        table('Opening','On hand',job.lines.map((l,i)=>[l.opening,l.opening+(stale || (conflict && i===1)?0:totals[i])]));
       break;
     case 'post':
       body='<form method="post" action="/post">'+job.lines.map((l,i)=>'<label>'+escape(l.name)+' · units<input type="number" name="q'+i+'" min="0" max="999" value="0" required></label>').join('')+'<button>Post receipt</button></form>';
