@@ -2,6 +2,8 @@
 
 Run `npm ci --ignore-scripts`, then `npm start`. Open the loopback URL printed in the terminal. The visitor site works without a key. Human attempts stay in the local study directory. The original order-form demo remains available with `npm run demo`.
 
+[Read the measured findings](FINDINGS.md) from the 172-attempt receiving study. The collection source is pinned at `1efbc2f`.
+
 ## Try the work
 
 Open the delivery note, compare it with the purchase order and post the delivered quantities. A timeout can hide a saved, lost or partial write. Inventory can lag the journal; the conflict case gives two independently visible, inconsistent records. If they cannot be reconciled, cite the affected product and both quantities in a supervisor handoff. Finish the job to reveal its condition and underlying ledger.

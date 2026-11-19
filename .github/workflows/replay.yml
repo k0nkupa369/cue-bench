@@ -13,3 +13,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run demo
+      - run: node src/retail/verify-publication.ts
+      - run: npm run research:report

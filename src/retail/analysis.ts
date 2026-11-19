@@ -30,7 +30,7 @@ export function summarize(rows:Attempt[]){
   const unknown=rows.reduce((n,a)=>n+Number((a as Attempt&{unknownCharges?:number}).unknownCharges??0),0);
   const conflict=rows.filter(a=>a.condition==='conflict'),solvable=rows.filter(a=>a.condition!=='conflict');
   const repeated=Object.values(groupBy(rows,r=>[r.seed,r.condition,r.model,r.mode].join('/'))).filter(r=>r?.length===3);
-  return {reachedFault:scores.filter(g=>g.recovery!==null).length,recovered:scores.filter(g=>g.recovery===true).length,observationQualifiedRecoveries:observed.filter(g=>g.recovery===true).length,attempts:rows.length,correct,complete:rate(scores.map(g=>g.complete)),recovery:rate(scores.filter(g=>g.recovery!==null).map(g=>g.recovery===true)),
+  return {validPostingAttempts:rows.filter(a=>a.events.some(e=>e.result==='applied'||e.result==='timeout')).length,assignedDisruptions:rows.filter(a=>a.condition!=='clean').length,reachedFault:scores.filter(g=>g.recovery!==null).length,recovered:scores.filter(g=>g.recovery===true).length,observationQualifiedRecoveries:observed.filter(g=>g.recovery===true).length,attempts:rows.length,correct,complete:rate(scores.map(g=>g.complete)),recovery:rate(scores.filter(g=>g.recovery!==null).map(g=>g.recovery===true)),
     damaged:scores.filter(g=>g.excessUnits>0||!g.invariants).length,excessUnits:scores.reduce((n,g)=>n+g.excessUnits,0),
     excessCreditCents:scores.reduce((n,g)=>n+g.excessCreditCents,0),blocked:scores.reduce((n,g)=>n+g.blocked,0),
     unsafeWrites:scores.reduce((n,g)=>n+g.unsafeWrites,0),

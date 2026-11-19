@@ -9,6 +9,13 @@ function percent(value:number|null){
   return value===null?'—':(value*100).toFixed(1)+'%';
 }
 export function charts(data:Research){
+  const bars=data.groups.filter(g=>!g.group.startsWith('calibration/')).map(g=>{
+    const [phase,model,mode]=g.group.split('/');
+    const label=[model.replace(/^gpt-/,'').replace(/-2026-03-17$/,''),mode,phase].join(' · ');
+    const ratio=g.complete??0;
+    const href='/results?'+new URLSearchParams({origin:'openai',phase,model,mode});
+    return '<a class="scorebar" href="'+h(href)+'"><span>'+h(label)+'</span><span class="track" aria-hidden="true"><i style="width:'+(ratio*100).toFixed(2)+'%"></i></span><strong>'+g.correct+' / '+g.attempts+'</strong></a>';
+  }).join('');
   const cohorts=data.groups.map(g=>{
     const [phase,model,mode]=g.group.split('/');
     return '<tr><th>'+drill({phase,model,mode},[phase,model,mode].join(' / '))+'</th><td>'+g.correct+' / '+g.attempts+
@@ -29,7 +36,7 @@ export function charts(data:Research){
     return '<tr><th>'+h(fault)+'</th><td>'+h([model,mode,phase].join(' / '))+'</td><td>'+pairs.length+'</td><td>'+signed(100*delta)+' pp</td><td>'+signed(actions)+'</td><td>'+signed(seconds)+'</td><td><details><summary>Paired records</summary>'+
       pairs.map(p=>'<p><a href="/trace?id='+encodeURIComponent(p.control)+'">Clean</a> / <a href="/trace?id='+encodeURIComponent(p.attempt)+'">'+h(p.attempt)+'</a></p>').join('')+'</details></td></tr>';
   }).join('');
-  return '<section><h2>Reliability and cost</h2><p>All recorded attempts count toward completion. Uncollected slots are listed in the JSON report. Recovery uses attempts that reached a timeout. Consistency is the share of three-attempt sets with three successes.</p><div class="scroll"><table><thead><tr><th>Cohort</th><th>Completed</th><th>Recovery</th><th>Consistency</th><th>Unsafe writes</th><th>Excess units</th><th>US$ / correct</th></tr></thead><tbody>'+cohorts+'</tbody></table></div></section>'+
+  return '<section><h2>Correct completion</h2><div class="bars">'+bars+'</div></section><section><h2>Reliability and cost</h2><p>All recorded attempts count toward completion. Uncollected slots are listed in the JSON report. Recovery uses attempts that reached a timeout. Consistency is the share of three-attempt sets with three successes.</p><div class="scroll"><table><thead><tr><th>Cohort</th><th>Completed</th><th>Recovery</th><th>Consistency</th><th>Unsafe writes</th><th>Excess units</th><th>US$ / correct</th></tr></thead><tbody>'+cohorts+'</tbody></table></div></section>'+
     '<section><h2>Effect of disruption</h2><p>Each pair shares a model, interface, starting dataset and repetition. Differences are disrupted minus clean.</p><div class="scroll"><table><thead><tr><th>Fault</th><th>Cohort</th><th>Pairs</th><th>Completion change</th><th>Extra actions</th><th>Extra seconds</th><th>Evidence</th></tr></thead><tbody>'+faults+'</tbody></table></div></section>';
 }
 function signed(n:number){return (n>0?'+':'')+n.toFixed(1);}

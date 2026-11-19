@@ -103,7 +103,7 @@ function frameCard(a:Attempt,index:number){
   for(const e of logged)for(const change of e.changes??[])units[change.line]+=change.units;
   return '<article class="frame"><p class="eyebrow">'+h(a.origin)+' / '+h(a.mode)+'</p><h2>'+h(a.model)+'</h2><p><strong>'+h(f.action)+'</strong></p>'+
     (f.image?'<img src="/screens/'+h(f.image)+'" alt="Browser viewport at this observation">':'')+
-    '<details '+(f.image?'':'open')+'><summary>Browser evidence</summary><pre>'+h(f.view)+'</pre></details><p class="ledger">Underlying ledger · '+units.join(' / ')+' units</p><small>'+f.elapsedMs+' ms from start · frame '+(Math.max(0,Math.min(series.length-1,index))+1)+' of '+series.length+'</small></article>';
+    '<details '+(f.image?'':'open')+'><summary>'+(a.mode==='pixels'?'Audit text from the page':'Browser evidence')+'</summary><pre>'+h(f.view)+'</pre></details><p class="ledger">Underlying ledger · '+units.join(' / ')+' units</p><small>'+f.elapsedMs+' ms from start · frame '+(Math.max(0,Math.min(series.length-1,index))+1)+' of '+series.length+'</small></article>';
 }
 function frameForEvent(a:Attempt,event:number){
   if(event<0)return 0;
