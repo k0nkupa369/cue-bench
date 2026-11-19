@@ -1,3 +1,4 @@
+import {randomUUID} from 'node:crypto';
 export const conditions = ['clean','saved','lost','partial','stale','conflict'] as const;
 export type Condition = typeof conditions[number];
 export type Pair = [number,number];
@@ -13,6 +14,7 @@ export function delivery(seed:number) {
   };
 }
 export class Desk {
+  readonly id=randomUUID();
   readonly job:ReturnType<typeof delivery>;
   readonly condition:Condition;
   readonly entries:Entry[]=[];

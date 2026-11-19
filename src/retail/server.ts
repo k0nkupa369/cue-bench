@@ -40,9 +40,11 @@ export async function startRetail(options:{seed?:number,condition?:Condition}={}
       let raw='';req.setEncoding('utf8');
       for await(const chunk of req){raw+=chunk;if(raw.length>8192)return send(413,'Form too large');}
       const form=new URLSearchParams(raw);
+      if(form.get('job')!==d.id || d.finished) return send(409,page('<h1>Job changed</h1><a href="/desk">Return to current job</a>','Job changed'));
       if(url.pathname==='/post'){
         if(!form.has('q0')||!form.has('q1')) return send(400,'Missing quantities');
-        d.post([Number(form.get('q0')),Number(form.get('q1'))]);return redirect('/desk?view=post');
+        try { d.post([Number(form.get('q0')),Number(form.get('q1'))]); } catch(e) { d.message=e instanceof Error?e.message:'Invalid quantities'; }
+        return redirect('/desk?view=post');
       }
       if(url.pathname==='/handoff'){
         const note=form.get('note')?.trim();if(!note||note.length>1200)return send(400,'Enter a discrepancy note.');
