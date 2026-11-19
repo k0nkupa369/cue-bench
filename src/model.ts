@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const checkerVersion = 1;
+export const providers = ['openai','anthropic','gemini'] as const;
 
 export const order = z.object({
   reference: z.string().min(1).max(80),
@@ -14,7 +15,7 @@ export const action = z.discriminatedUnion('type', [
 ]);
 export const recording = z.object({
   taskVersion: z.literal(1), checkerVersion: z.number().int().nonnegative(), scenario: z.enum(['normal','saved','lost']),
-  origin: z.enum(['scripted','stand-in','openai']),
+  origin: z.enum(['scripted','stand-in',...providers]),
   configuration: z.object({driver: z.string().min(1), model:z.string().optional(), prompt:z.string().optional(),
     maxActions:z.number().int().positive().optional(), maxMillis:z.number().int().positive().optional()}),
   pilotUsage:z.object({requests:z.number(),meteredResponses:z.number(),inputTokens:z.number(),cachedInputTokens:z.number(),
