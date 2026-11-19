@@ -20,6 +20,7 @@ export async function startFixture(scenario: 'normal' | 'saved' = 'normal') {
     if (req.headers.origin !== 'http://' + req.headers.host) return res.writeHead(403).end();
     try {
       let body = '';
+      req.setEncoding('utf8');
       for await (const chunk of req) {
         body += chunk;
         if (body.length > 2048) return res.writeHead(413).end();
@@ -29,7 +30,7 @@ export async function startFixture(scenario: 'normal' | 'saved' = 'normal') {
         orders.push(saved);
         return res.end('Submission timed out.');
       }
-      if (!orders.some(existing => existing.reference === saved.reference)) orders.push(saved);
+      if (scenario === 'normal' || !orders.some(existing => existing.reference === saved.reference)) orders.push(saved);
       res.end('Order saved: ' + saved.reference);
     } catch {
       res.writeHead(400).end('Invalid order');
