@@ -53,7 +53,32 @@ node src/replay.ts my-attempt.json
 
 The runner exposes the local form through labelled browser controls. It sends the requested order, actions, and visible accessibility snapshots to its decision provider. The checker reads the final fixture records independently. Each live attempt allows 30 individual actions and three minutes. A batch still counts one action at a time. The stand-in also supports `limit`, `deadline` (shortened clock), `disconnect`, and `validation` to demonstrate those paths without credentials.
 
-The OpenAI Responses adapter requires explicit paid mode. Live verification is tracked separately through the paid pilot. The public examples and CI use no API credentials.
+## Run a live model
+
+The order runner supports OpenAI, Anthropic Claude, and Google Gemini. Set the API key and model ID in your shell. Keys stay in the Node process. Use a model available to your account that supports function calling.
+
+| Provider argument | API key variable | Order model variable |
+|---|---|---|
+| `openai` | `OPENAI_API_KEY` | `OPENAI_MODEL` |
+| `anthropic` | `ANTHROPIC_API_KEY` | `ANTHROPIC_MODEL` |
+| `gemini` | `GEMINI_API_KEY` | `GEMINI_MODEL` |
+
+For a Claude key that needs a workspace selector, also set `ANTHROPIC_WORKSPACE_ID`. [Claude authentication](https://platform.claude.com/docs/en/manage-claude/authentication)
+
+For example, with the Anthropic variables set and Chromium installed, collect one lost-order attempt and replay it locally.
+
+```sh
+node src/agent.ts anthropic lost --allow-paid > my-attempt.json
+node src/replay.ts my-attempt.json
+```
+
+The retail workbench accepts the same three providers. Pass the model explicitly. Use a model that supports structured output and, for screenshot runs, image input. This example requests one Gemini run on a partial receipt with up to eight API calls.
+
+```sh
+npm run retail:run -- --provider gemini --model "$GEMINI_MODEL" --mode pixels --workflow receiving --condition partial --seed 1 --max-calls 8 --allow-paid
+```
+
+Both commands send data to the selected provider and may incur charges. A call limit bounds the number of requests. The provider determines the price. The original paid pilot and frozen order baseline use OpenAI. [Retail protocol and provider design](retail/README.md)
 
 ## Submit a recording
 
