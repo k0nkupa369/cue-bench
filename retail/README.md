@@ -8,7 +8,7 @@ Run `npm ci --ignore-scripts`, then `npm start`. Open the loopback URL printed i
 
 Open the delivery note, compare it with the purchase order and post the delivered quantities. A timeout can hide a saved, lost or partial write. Inventory can lag the journal; the conflict case gives two independently visible, inconsistent records. If they cannot be reconciled, cite the affected product and both quantities in a supervisor handoff. Finish the job to reveal its condition and underlying ledger.
 
-Transfers debit Wharf and credit Depot. Refunds use integer cents and cannot exceed the original paid balance. Each session resets the products and balances for its dataset. These workflows share the product definitions but operate in independent jobs. No real inventory, shipments or money are involved.
+Transfers debit Wharf and credit Depot. Refunds use integer cents and cannot exceed the original paid balance. Choose **Continue to transfer** after closing a receipt to move stock from that delivery, then **Continue to refund** to credit the authorized return. The journal links the earlier jobs. An unresolved discrepancy ends the shift. Starting from the workbench opens a fresh dataset. Measured agent attempts always start independently. No real inventory, shipments or money are involved.
 
 ## Inspect the evidence
 

@@ -15,10 +15,37 @@ export function delivery(seed:number, workflow:Workflow='receiving') {
       delivered:i===0?12+n%5:8+n%3, ordered:i===0?16+n%5:11+n%3, priceCents:2499+100*i+10*n, destinationOpening:4+i, opening:20+2*n+i}))
   };
 }
+export type PriorJob = {id:string, reference:string, workflow:Workflow};
+export type LocationBalance = {sku:string, wharf:number, depot:number};
 export type Event = {kind:'view'|'post'|'finish'|'handoff',ms:number,screen?:Screen,visible?:string,units?:Pair,
   result?:'applied'|'blocked'|'timeout'|'invalid',changes?:Entry[],note?:string,citation?:{sku:string,journal:number,balance:number}};
 export class Desk {
   readonly seed:number;
+  priorJobs:PriorJob[]=[];
+  nextWorkflow():Workflow|undefined {
+    if(!this.finished || this.note || (this.condition==='conflict' && this.posts)) return;
+    return this.workflow==='receiving'?'transfer':this.workflow==='transfer'?'refund':undefined;
+  }
+  balances():LocationBalance[] {
+    const balances=this.job.lines.map(l=>({sku:l.sku,wharf:l.opening,depot:l.destinationOpening}));
+    for(const entry of this.entries){
+      const line=balances[entry.line];
+      line.wharf+=this.workflow==='receiving'?entry.destinationDelta:entry.sourceDelta;
+      if(this.workflow==='transfer')line.depot+=entry.destinationDelta;
+    }
+    return balances;
+  }
+  continueJob(condition:Condition){
+    const workflow=this.nextWorkflow();
+    if(!workflow)throw Error('No next job');
+    const next=new Desk(this.seed,condition,workflow);
+    for(const [i,balance] of this.balances().entries()){
+      next.job.lines[i].opening=balance.wharf;
+      next.job.lines[i].destinationOpening=balance.depot;
+    }
+    next.priorJobs=[...this.priorJobs,{id:this.id,reference:this.job.reference,workflow:this.workflow}];
+    return next;
+  }
   readonly started=Date.now();
   events:Event[]=[];
   log(event:Omit<Event,'ms'>){this.events.push({...event,ms:Date.now()-this.started});}

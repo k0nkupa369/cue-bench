@@ -1,6 +1,10 @@
-import {Desk,type Screen} from './ledger.ts';
+import {Desk,type Screen,type PriorJob} from './ledger.ts';
 export const escape = (s:string|number)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const receivingTitles:Record<Screen,string>={job:'Purchase order',document:'Delivery note',journal:'Receipt journal',stock:'Inventory',post:'Post receipt',handoff:'Handoff'};
+export function jobHistory(jobs:PriorJob[]){
+  if(!jobs.length)return '';
+  return '<div><h3>Earlier jobs this shift</h3><ol>'+jobs.map(job=>'<li><a href="/trace?id='+encodeURIComponent(job.id)+'">'+escape(job.reference)+'</a> · '+escape(job.workflow)+'</li>').join('')+'</ol></div>';
+}
 export function page(body:string,title:string) {
   return '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+escape(title)+' · Cue Bench</title><link rel="stylesheet" href="/style.css"><header><a href="/" class="brand">Cue Bench</a><span>Retail operations lab</span></header><main>'+body+'</main></html>';
 }
@@ -27,6 +31,7 @@ export function workspace(d:Desk,screen:Screen) {
     case 'journal':
       body=conflict?'<p role="status">Unverified journal export. Compare the independently captured '+(workflow==='refund'?'payment balance':'warehouse count')+'.</p>'+table('Posted units','Document',job.lines.map((_,i)=>[totals[i],job.document])):
         table('Posted units','Document',job.lines.map((_,i)=>[totals[i],job.document]));
+      body+=jobHistory(d.priorJobs);
       break;
     case 'stock':
       body='<p>'+(conflict?'Independent count at posting time. Neither source is certified during reconciliation.':stale?'Snapshot captured before this delivery.':'Current warehouse count.')+'</p>'+

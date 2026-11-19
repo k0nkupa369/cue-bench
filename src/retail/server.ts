@@ -54,11 +54,17 @@ export async function startRetail(options:{seed?:number,condition?:Condition,wor
         d.log({kind:'view',screen:name as Screen,visible:section.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()});
         return send(200,html);
       }
-      if(req.method!=='POST'||d.finished) return send(404,'Unknown action');
+      const continuing=Boolean(options.humanArchive && url.pathname==='/continue');
+      if(req.method!=='POST'||(d.finished && !continuing)) return send(404,'Unknown action');
       let raw='';req.setEncoding('utf8');
       for await(const chunk of req){raw+=chunk;if(raw.length>8192)return send(413,'Form too large');}
       const form=new URLSearchParams(raw);
-      if(form.get('job')!==d.id || d.finished) return send(409,page('<h1>Job changed</h1><a href="/desk">Return to current job</a>','Job changed'));
+      if(!token || sessions.get(token)!==d || form.get('job')!==d.id || (d.finished && !continuing)) return send(409,page('<h1>Job changed</h1><a href="/desk">Return to current job</a>','Job changed'));
+      if(continuing){
+        if(!d.nextWorkflow())return send(409,'No next job available');
+        sessions.set(token,d.continueJob(options.condition??conditions[randomInt(conditions.length)]));
+        return redirect('/desk');
+      }
       if(url.pathname==='/post'){
         if(!form.has('q0')||!form.has('q1')) return send(400,'Missing quantities');
         const units:[number,number]=[Number(form.get('q0')),Number(form.get('q1'))];

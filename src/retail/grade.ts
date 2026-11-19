@@ -1,13 +1,15 @@
-import {delivery,type Desk,type Condition,type Workflow,type Entry,type Event} from './ledger.ts';
+import {delivery,type Desk,type Condition,type Workflow,type Entry,type Event,type PriorJob,type LocationBalance} from './ledger.ts';
 
 export type Attempt={
+  priorJobs?:PriorJob[],openingBalances?:LocationBalance[],
   version:1,id:string,workflow:Workflow,condition:Condition,seed:number,origin:'scripted'|'human'|'openai',
   model:string,mode:'manual'|'controls'|'pixels',phase:'calibration'|'development'|'heldout',
   termination:'closed'|'limit'|'interrupted',durationMs:number,actions:number,tokens:number,costUsd:number,
   events:Event[],entries:Entry[],frames:{action:string,view:string,elapsedMs:number,image?:string,eventCount:number}[]
 };
 export function capture(d:Desk):Attempt{
-  return {version:1,id:d.id,workflow:d.workflow,condition:d.condition,seed:d.seed,origin:'human',model:'operator',
+  const shift=d.priorJobs.length?{priorJobs:d.priorJobs,openingBalances:d.job.lines.map(l=>({sku:l.sku,wharf:l.opening,depot:l.destinationOpening}))}:{};
+  return {...shift,version:1,id:d.id,workflow:d.workflow,condition:d.condition,seed:d.seed,origin:'human',model:'operator',
     mode:'manual',phase:'calibration',termination:d.finished?'closed':'interrupted',durationMs:Date.now()-d.started,
     actions:d.events.length,tokens:0,costUsd:0,events:structuredClone(d.events),entries:structuredClone(d.entries),frames:[]};
 }

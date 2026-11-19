@@ -5,10 +5,11 @@ import {conditions, workflows, type Desk} from './ledger.ts';
 import {charts} from './charts.ts';
 import {analyze,summarize} from './analysis.ts';
 import {capture,grade,type Attempt} from './grade.ts';
-import {escape as h,page} from './views.ts';
+import {escape as h,page,jobHistory} from './views.ts';
 
 const dir=fileURLToPath(new URL('../../retail/',import.meta.url));
-const paths=['examples','published/attempts','local/study/attempts','local/human'];
+const studyFolder=existsSync(resolve(dir,'published/manifest.json'))?'published':'local/study';
+const paths=['examples',studyFolder+'/attempts','local/human'];
 const cache=new Map<string,Attempt>();
 export function attempts(){
   const rows=new Map<string,Attempt>();
@@ -56,10 +57,12 @@ function decision(a:Attempt){
   return '<dl class="metrics"><div><dt>Completion</dt><dd>'+(g.complete?'Pass':'Fail')+'</dd></div><div><dt>Recovery</dt><dd>'+(g.recovery===null?'N/A':g.recovery?'Pass':'Fail')+'</dd></div><div><dt>Excess units</dt><dd>'+g.excessUnits+'</dd></div><div><dt>Blocked writes</dt><dd>'+g.blocked+'</dd></div></dl>';
 }
 export function reveal(d:Desk){
-  const a=capture(d),g=grade(a);
+  const a=capture(d),g=grade(a),next=d.nextWorkflow();
+  const continuation=next?'<form method="post" action="/continue"><input type="hidden" name="job" value="'+h(d.id)+'"><button>Continue to '+h(next)+'</button></form>':'';
+  const balances='<section><h2>Closing stock</h2><table><thead><tr><th>Product</th><th>Wharf</th><th>Depot</th></tr></thead><tbody>'+d.balances().map(b=>'<tr><th>'+h(b.sku)+'</th><td>'+b.wharf+'</td><td>'+b.depot+'</td></tr>').join('')+'</tbody></table></section>';
   return shell('<p class="eyebrow">Operator debrief / '+h(d.job.reference)+'</p><h1>Job closed.</h1><p>The case was <strong>'+h(a.condition)+'</strong>. '+(d.note?'You handed the job to a supervisor.':'You finished the job.')+'</p>'+decision(a)+
     '<section><h2>Final ledger</h2><table><thead><tr><th>Product</th><th>Requested</th><th>Posted</th></tr></thead><tbody>'+g.lines.map(l=>'<tr><th>'+h(l.sku)+'</th><td>'+l.target+'</td><td>'+l.actual+'</td></tr>').join('')+'</tbody></table></section>'+
-    '<div class="choices">'+link('/trace?id='+d.id,'Inspect your attempt')+link(url('/replays',{a:d.id}),'Compare your job with a matched run')+link('/','Try another job')+'</div>','Job result');
+    balances+jobHistory(d.priorJobs)+'<div class="choices">'+continuation+link('/trace?id='+d.id,'Inspect your attempt')+(d.priorJobs.length?'':link(url('/replays',{a:d.id}),'Compare your job with a matched run'))+link('/','Try another job')+'</div>','Job result');
 }
 function filter(name:string,options:string[],chosen:string){
   return '<label>'+h(name)+'<select aria-label="'+h(name)+'" name="'+h(name)+'"><option value="">All</option>'+options.map(o=>'<option '+(o===chosen?'selected ':'')+'value="'+h(o)+'">'+h(o)+'</option>').join('')+'</select></label>';
@@ -80,8 +83,8 @@ export function results(params:URLSearchParams){
   }).join('');
   if(params.get('study')==='matched'){
     const research=analyze(rows);
-    const ledger=['local/study/budget.json','published/budget.json'].map(f=>resolve(dir,f)).find(f=>existsSync(f));
-    const receipts: {cost?:number,reserved:number}[]=ledger?JSON.parse(readFileSync(ledger,'utf8')):[];
+    const ledger=resolve(dir,studyFolder,'budget.json');
+    const receipts: {cost?:number,reserved:number}[]=existsSync(ledger)?JSON.parse(readFileSync(ledger,'utf8')):[];
     const unknown=receipts.filter(c=>c.cost===undefined);
     const accounting='<p>All research requests including setup revisions: US$'+receipts.reduce((s,c)=>s+(c.cost??0),0).toFixed(4)+' metered. '+unknown.length+' without receipts or still in flight; US$'+unknown.reduce((s,c)=>s+c.reserved,0).toFixed(4)+' reserved for them. Cohort costs below cover the selected frozen attempts only.</p>';
     const pct=(v:number|null)=>v===null?'—':(v*100).toFixed(1)+'%';
@@ -120,10 +123,14 @@ function decisionAnchors(a:Attempt,b:Attempt){
   if(i===left.length&&i===right.length)return;
   return [frameForEvent(a,left[i]?.i??a.events.length-1),frameForEvent(b,right[i]?.i??b.events.length-1)];
 }
+function sameOpening(a:Attempt,b:Attempt){
+  return a.id!==b.id && a.workflow===b.workflow && a.seed===b.seed && a.condition===b.condition
+    && JSON.stringify(a.openingBalances)===JSON.stringify(b.openingBalances);
+}
 export function replay(params:URLSearchParams){
   const rows=attempts(),first=rows.find(r=>r.id===(params.get('a')??'receiving-partial-1-verify'));
   if(!first)return shell('<h1>Attempt unavailable</h1>','Replay');
-  const peers=rows.filter(r=>r.id!==first.id && r.workflow===first.workflow && r.seed===first.seed && r.condition===first.condition);
+  const peers=rows.filter(r=>sameOpening(first,r));
   const second=peers.find(r=>r.id===params.get('b'))??peers.find(r=>r.origin==='openai' && r.model!==first.model)??peers.find(r=>r.model!==first.model)??peers[0];
   if(!second)return trace(first.id);
   const faults=[first,second].map(a=>a.events.findIndex(e=>e.result==='timeout'));
@@ -141,12 +148,11 @@ export function trace(id:string){
   const all=attempts();
   const a=all.find(r=>r.id===id);
   if(!a)return shell('<h1>Attempt unavailable</h1>','Attempt');
-  return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(a.termination)+'</p>'+decision(a)+
-    '<p>'+a.actions+' actions · '+(a.durationMs/1000).toFixed(1)+' seconds · '+a.tokens+' tokens · US$'+a.costUsd.toFixed(5)+' metered</p><p>'+(all.some(r=>r.id!==a.id&&r.condition===a.condition&&r.seed===a.seed&&r.workflow===a.workflow)?link(url('/replays',{a:id}),'Compare matched attempts'):'No matched peer has been recorded.')+'</p><section><h2>Recorded browser frames</h2>'+frames(a).map((f,i)=>'<details><summary>'+i+' · '+h(f.action)+'</summary>'+frameCard(a,i)+'</details>').join('')+'</section><section><h2>Decision history</h2>'+a.events.map(e=>'<details><summary>'+e.ms+' ms · '+h(e.kind)+' '+h(e.screen??e.result??'')+'</summary><pre>'+h(JSON.stringify(e,null,2))+'</pre></details>').join('')+'</section>','Attempt record');
+  return shell('<p class="eyebrow">'+h(a.origin)+' / '+h(a.phase)+'</p><h1>Attempt record</h1><p>'+h(a.id)+' · '+h(a.model)+' · '+h(a.termination)+'</p>'+decision(a)+jobHistory(a.priorJobs??[])+(a.openingBalances?'<p>Opening stock (Wharf / Depot) · '+a.openingBalances.map(b=>h(b.sku)+' '+b.wharf+' / '+b.depot).join(' · ')+'</p>':'')+
+    '<p>'+a.actions+' actions · '+(a.durationMs/1000).toFixed(1)+' seconds · '+a.tokens+' tokens · US$'+a.costUsd.toFixed(5)+' metered</p><p>'+(all.some(r=>sameOpening(a,r))?link(url('/replays',{a:id}),'Compare matched attempts'):'No matched peer has been recorded.')+'</p><section><h2>Recorded browser frames</h2>'+frames(a).map((f,i)=>'<details><summary>'+i+' · '+h(f.action)+'</summary>'+frameCard(a,i)+'</details>').join('')+'</section><section><h2>Decision history</h2>'+a.events.map(e=>'<details><summary>'+e.ms+' ms · '+h(e.kind)+' '+h(e.screen??e.result??'')+'</summary><pre>'+h(JSON.stringify(e,null,2))+'</pre></details>').join('')+'</section>','Attempt record');
 }
 export function screenshot(name:string){
   if(!/^[a-f0-9]{64}\.jpg$/.test(name))return;
-  for(const path of ['published/screens','local/study/screens']){
-    const file=resolve(dir,path,name);if(existsSync(file))return readFileSync(file);
-  }
+  const file=resolve(dir,studyFolder,'screens',name);
+  if(existsSync(file))return readFileSync(file);
 }
