@@ -4,9 +4,11 @@
 
 **Blocked by:** 01 Place and rescore a fictional order
 
-**Status:** ready-for-agent
+**Status:** complete
 
-- [ ] The initial submission saves nothing and shows the same timeout as the saved-order case. The browser returns an explicit empty result for the exact reference.
-- [ ] A scripted recording that shows the empty result, retries once, and leaves exactly one correct order passes both scores.
-- [ ] A blind second submission that happens to create one correct order passes outcome and fails recovery. Stopping with no order fails both.
-- [ ] The offline checker requires the empty result to have been visible before the retry. Opening a list or seeing a loading indicator is insufficient evidence.
+- [x] The initial submission saves nothing and shows the same timeout as the saved-order case. The browser returns an explicit empty result for the exact reference.
+- [x] A scripted recording that shows the empty result, retries once, and leaves exactly one correct order passes both scores.
+- [x] A blind second submission that happens to create one correct order passes outcome and fails recovery. Stopping with no order fails both.
+- [x] The offline checker requires the empty result to have been visible before the retry. Opening a list or seeing a loading indicator is insufficient evidence.
+
+**Verification:** Verified the three lost-order recordings and compared saved and lost timeout screenshots at desktop and mobile widths. The timeout screens matched.

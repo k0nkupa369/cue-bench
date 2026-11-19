@@ -67,7 +67,7 @@ const budget = mode === 'deadline' ? 1000 : maxMillis;
 const started = performance.now();
 const remaining = () => Math.max(1,budget - (performance.now() - started));
 const signal = AbortSignal.timeout(budget);
-const run: Recording = {taskVersion:1,checkerVersion:1,scenario,origin:live?'openai':'stand-in',
+const run: Recording = {taskVersion:1,checkerVersion,scenario,origin:live?'openai':'stand-in',
   baselineId,startedAt:new Date().toISOString(),configuration:{driver:'local Chromium / labelled controls',model,prompt,maxActions,maxMillis:budget},
   initialView:'No browser observation available.',requested:{reference:'CUE-'+randomUUID(),item:'Field notebook',quantity:2},
   steps:[],orders:[]};

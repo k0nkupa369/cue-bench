@@ -2,7 +2,7 @@ import {chromium, type Page} from 'playwright';
 import {randomUUID} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {startFixture} from './fixture.ts';
-import {lookupMessage, type Action, type Recording} from './model.ts';
+import {checkerVersion, lookupMessage, type Action, type Recording} from './model.ts';
 
 export async function perform(page: Page, action: Action) {
   let lookupResult: string | undefined;
@@ -42,7 +42,7 @@ async function main() {
       const page = await browser.newPage();
       await page.goto(fixture.url);
       const requested = {reference:'CUE-' + randomUUID(),item:'Field notebook' as const,quantity:2};
-      const run: Recording = {taskVersion:1, checkerVersion:1, scenario, origin:'scripted',
+      const run: Recording = {taskVersion:1, checkerVersion, scenario, origin:'scripted',
         configuration:{driver:'Chromium / Playwright'}, requested, initialView:await page.locator('main').ariaSnapshot(),
         steps:[], orders:fixture.orders};
       const actions: Action[] = [{type:'fill',field:'Reference',value:requested.reference},

@@ -40,7 +40,9 @@ function report(file:string) {
     if (entry.replaces) replaced.add(entry.replaces);
     if (run.stopReason === 'interrupted') seen.add(id);
     if (entry.previous?.checkerVersion === String(checkerVersion)) throw Error(id+' correction must identify the earlier checker version');
-    if (run.checkerVersion !== checkerVersion && !entry.previous) throw Error(id+' missing correction history');
+    if (run.checkerVersion !== checkerVersion && entry.previous?.checkerVersion !== String(run.checkerVersion)) {
+      throw Error(id+' missing original checker score');
+    }
     return {id,scenario,status:run.stopReason,origin:run.origin,...score(run),recording:entry.file,
       sha256:entry.sha256,recordedCheckerVersion:run.checkerVersion,checkerVersion,previous:entry.previous,
       replaces:entry.replaces,lastKnownView:run.steps.at(-1)?.view ?? run.initialView};
