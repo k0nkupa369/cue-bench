@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "record": "node src/record.ts",
     "replay": "node src/replay.ts",
-    "fixture": "node src/serve.ts"
+    "fixture": "node src/serve.ts",
+    "agent": "node src/agent.ts"
   },
   "dependencies": {
     "playwright": "^1.65.1",

@@ -12,10 +12,14 @@ export const action = z.discriminatedUnion('type', [
 ]);
 export const recording = z.object({
   taskVersion: z.literal(1), checkerVersion: z.literal(1), scenario: z.enum(['normal','saved','lost']),
-  origin: z.literal('scripted'), configuration: z.object({driver: z.string().min(1)}),
-  requested: order, initialView: z.string().min(1), steps: z.array(z.object({action, view: z.string().min(1), lookupResult: z.string().optional()})).min(1),
+  origin: z.enum(['scripted','stand-in','openai']),
+  configuration: z.object({driver: z.string().min(1), model:z.string().optional(), prompt:z.string().optional(),
+    maxActions:z.number().int().positive().optional(), maxMillis:z.number().int().positive().optional()}),
+  stopReason:z.enum(['completed','action-limit','time-limit','interrupted']).optional(),
+  requested: order, initialView: z.string().min(1), steps: z.array(z.object({action, view: z.string().min(1), lookupResult: z.string().optional()})),
   orders: z.array(order.extend({item:z.string().min(1)}))
-});
+ }).refine(run => run.steps.length > 0 || (run.origin !== 'scripted' && run.stopReason !== undefined),
+  'Missing recording steps');
 export type Order = z.infer<typeof order>;
 export type Recording = z.infer<typeof recording>;
 export type Action = z.infer<typeof action>;
