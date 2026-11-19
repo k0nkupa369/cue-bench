@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {existsSync,mkdirSync,readFileSync,renameSync,unlinkSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {z} from 'zod';
+import {Desk} from './ledger.ts';
 import {startRetail} from './server.ts';
 import {capture,grade,type Attempt} from './grade.ts';
 import {type Condition} from './ledger.ts';
@@ -116,6 +117,7 @@ async function runJob(browser:Browser,j:Job,rehearsal=false):Promise<LiveAttempt
         'Use click with integer x,y in the 1024x900 image; type with value; key with Tab, Enter, ArrowDown, ArrowUp, Backspace or ControlOrMeta+a; scroll with value up/down.';
       const content:object[]=[{type:'input_text',text:controls+'\nPrior observations and actions:\n'+history.slice(-14).join('\n')+'\nCurrent screen:\n'+(view.image?'See image.':view.text)}];
       if(view.image)content.push({type:'input_image',image_url:'data:image/jpeg;base64,'+view.image,detail:'high'});
+      if(!rehearsal)atomic(root+'/attempts/'+j.id+'.checkpoint',{...capture(desk),frames,actions,durationMs:Date.now()-start});
       let moves:Move[];
       let memo='';
       if(rehearsal){
@@ -148,7 +150,7 @@ async function runJob(browser:Browser,j:Job,rehearsal=false):Promise<LiveAttempt
           elapsedMs:Date.now()-start,eventCount:desk.events.length});
       }
     }
-    termination=desk.finished?'closed':'limit';
+    termination=desk.finished?'closed':error?'interrupted':'limit';
   }catch(e){error=signal.aborted?'Time limit':e instanceof Error?e.message.slice(0,240):'Interrupted';termination=signal.aborted?'limit':'interrupted';}
   finally{signal.removeEventListener('abort',close);await context.close();f.close();}
   const desk=[...f.sessions.values()][0];if(!desk)throw Error('Browser did not start the job');
@@ -164,28 +166,62 @@ async function main(){
   }
   if(!['calibration','development','heldout'].includes(command)||!process.argv.includes('--allow-paid')||!process.env.OPENAI_API_KEY)throw Error('Select an authorized phase and explicitly enable paid runs.');
   mkdirSync(root+'/attempts',{recursive:true});mkdirSync(root+'/screens',{recursive:true});
-  writeFileSync(root+'/active.lock',String(process.pid),{flag:'wx'});
+  const active=root+'/active.lock';
+  if(existsSync(active)) {
+    const pid=Number(readFileSync(active,'utf8'));
+    if(!Number.isSafeInteger(pid)||pid<=0)throw Error('Invalid collector lock. Inspect before recovery.');
+    try{process.kill(pid,0);throw Error('Collector is already active');}
+    catch(e){if((e as NodeJS.ErrnoException).code!=='ESRCH')throw e;}
+    if(!process.argv.includes('--recover'))throw Error('Prior collector exited. Use --recover to retain interrupted attempts.');
+    unlinkSync(active);
+  }
+  writeFileSync(active,String(process.pid),{flag:'wx'});
   try{
     const digest=createHash('sha256');
     for(const file of ['ledger.ts','grade.ts','views.ts','server.ts','study.ts'])digest.update(readFileSync(new URL(file,import.meta.url)));
+    digest.update(readFileSync(new URL('../../retail/style.css',import.meta.url)));
     const manifest={protocol,rates,jobs,capUsd:maxUsd,digest:digest.digest('hex')};
     const lock=root+'/manifest.json';
     if(!existsSync(lock))atomic(lock,manifest);
     if(JSON.stringify(JSON.parse(readFileSync(lock,'utf8')))!==JSON.stringify(manifest))throw Error('Frozen study configuration differs');
+    for(const j of jobs){
+      const file=root+'/attempts/'+j.id;
+      if(!existsSync(file+'.claim')||existsSync(file+'.json'))continue;
+      const receipts:Charge[]=existsSync(budgetFile)?JSON.parse(readFileSync(budgetFile,'utf8')):[];
+      const charges=receipts.filter(c=>c.attempt===j.id);
+      const prior=existsSync(file+'.checkpoint')?JSON.parse(readFileSync(file+'.checkpoint','utf8')):capture(new Desk(j.seed,j.condition));
+      atomic(file+'.json',{...prior,id:j.id,phase:j.phase,origin:'openai',mode:j.mode,model:rates[j.model].snapshot,
+        termination:'interrupted',error:'Collector exited before final archive; last checkpoint retained',
+        costUsd:charges.reduce((n,c)=>n+(c.cost??0),0),tokens:charges.reduce((n,c)=>n+(c.input??0)+(c.output??0),0),
+        receiptCount:charges.filter(c=>c.cost!==undefined).length,unknownCharges:charges.filter(c=>c.cost===undefined).length});
+    }
+    if(command!=='calibration'){
+      for(const j of jobs.filter(j=>j.phase==='calibration')){
+        const path=root+'/attempts/'+j.id+'.json';
+        if(!existsSync(path))throw Error('Complete all four interface calibrations before collection');
+        const a:LiveAttempt=JSON.parse(readFileSync(path,'utf8'));
+        if(!a.receiptCount||a.unknownCharges||!a.frames.length)throw Error('Calibration lacks metered browser evidence: '+j.id);
+      }
+      if(!process.argv.includes('--reviewed-calibration'))throw Error('Inspect calibration outcomes and pass --reviewed-calibration');
+    }
     const queue=jobs.filter(j=>j.phase===command&&!existsSync(root+'/attempts/'+j.id+'.json'));
     const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,env:{}});
     try{
       let stop=false;
-      await Promise.all(Array.from({length:4},async()=>{
+      const workers=await Promise.allSettled(Array.from({length:4},async()=>{
         while(!stop && queue.length){
           const j=queue.shift()!;
+          try{
           writeFileSync(root+'/attempts/'+j.id+'.claim',String(Date.now()),{flag:'wx'});
           const attempt=await runJob(browser,j);
           atomic(root+'/attempts/'+j.id+'.json',attempt);
+          const checkpoint=root+'/attempts/'+j.id+'.checkpoint';if(existsSync(checkpoint))unlinkSync(checkpoint);
           console.log(j.id,attempt.termination,grade(attempt).complete,attempt.costUsd.toFixed(6),attempt.error??'');
           if(attempt.unknownCharges || attempt.error?.includes('spend limit'))stop=true;
+          }catch(e){stop=true;throw e;}
         }
       }));
+      for(const worker of workers)if(worker.status==='rejected')throw worker.reason;
     }finally{await browser.close();}
   }finally{unlinkSync(root+'/active.lock');}
 }
