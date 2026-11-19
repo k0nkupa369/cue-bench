@@ -41,9 +41,11 @@ export type Readback={
   httpStatus:number,requestId:string|null,responseId:string|null,model:string|null,
   stopReason:string|null,usage:Usage|null
 };
+export const pixelPolicies=['batch','refresh-after-navigation'] as const;
 export type StandaloneAttempt=Omit<Attempt,'origin'|'phase'|'mode'|'tokens'|'costUsd'|'termination'> & {
   origin:Provider,phase:'standalone',mode:Mode,tokens:number|null,costUsd:null,maxCalls:number,
-  protocolVersion:number,termination:Attempt['termination']|'checkpoint',readbacks:(Readback|null)[],error?:string
+  protocolVersion:number,termination:Attempt['termination']|'checkpoint',readbacks:(Readback|null)[],
+  policy?:typeof pixelPolicies[number],error?:string
 };
 
 export async function queryProvider(args:{
