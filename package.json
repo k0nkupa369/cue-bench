@@ -6,6 +6,8 @@
     "node": ">=22.18"
   },
   "scripts": {
+    "start": "node src/retail/server.ts",
+    "research:report": "node src/retail/findings.ts",
     "typecheck": "tsc --noEmit",
     "record": "node src/record.ts",
     "replay": "node src/replay.ts",

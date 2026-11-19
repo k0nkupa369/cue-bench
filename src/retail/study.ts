@@ -117,7 +117,7 @@ async function runJob(browser:Browser,j:Job,rehearsal=false):Promise<LiveAttempt
       frames.push({action:'Observation '+(turn+1),view:view.text,elapsedMs:Date.now()-start,eventCount:desk.events.length,image:imagePath});
       const controls=j.mode==='controls'?'Use click/fill/select with numeric target from Controls and value for fill/select. End a batch at navigation; indexes can change.':
         'Use click with integer x,y in the 1024x900 image; type with value; key with Tab, Enter, ArrowDown, ArrowUp, Backspace or ControlOrMeta+a; scroll with value up/down.';
-      const content:object[]=[{type:'input_text',text:controls+'\nPrior observations and actions:\n'+history.slice(-14).join('\n')+'\nCurrent screen:\n'+(view.image?'See image.':view.text)}];
+      const content:object[]=[{type:'input_text',text:'Return a JSON object with actions and memo. '+controls+'\nPrior observations and actions:\n'+history.slice(-14).join('\n')+'\nCurrent screen:\n'+(view.image?'See image.':view.text)}];
       if(view.image)content.push({type:'input_image',image_url:'data:image/jpeg;base64,'+view.image,detail:'high'});
       if(!rehearsal)atomic(root+'/attempts/'+j.id+'.checkpoint',{...capture(desk),frames,actions,durationMs:Date.now()-start});
       let moves:Move[];
@@ -131,12 +131,22 @@ async function runJob(browser:Browser,j:Job,rehearsal=false):Promise<LiveAttempt
           Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
             model:rates[j.model].snapshot,store:false,service_tier:'default',max_output_tokens:protocol.outputTokens,
             instructions:protocol.instruction+' Include a short factual observation in the JSON field memo for your next step.',
-            text:{format:{type:'json_object'}},input:[{role:'user',content}]})});
-        if(!response.ok)throw Error('OpenAI HTTP '+response.status);
+            text:{format:{type:'json_schema',name:'browser_decision',strict:true,schema:{
+              type:'object',additionalProperties:false,required:['memo','actions'],properties:{memo:{type:'string'},actions:{type:'array',items:{
+                type:'object',additionalProperties:false,required:['op','target','value','x','y'],properties:{
+                  op:{type:'string',enum:j.mode==='controls'?['click','fill','select']:['click','type','key','scroll']},
+                  target:{type:['integer','null']},value:{type:['string','null']},x:{type:['integer','null']},y:{type:['integer','null']}
+                }}}}}}},input:[{role:'user',content}]})});
+        if(!response.ok){
+          const info=await response.json().catch(()=>({}));
+          const diagnostic=String(info.error?.message??'').replace(/sk-[A-Za-z0-9_-]+/g,'[redacted]').slice(0,180);
+          throw Error('OpenAI HTTP '+response.status+' '+(info.error?.code??'')+' '+diagnostic);
+        }
         const body=await response.json();
         const receipt=settle(charge,j.model,body.usage);costUsd+=receipt.cost;tokens+=receipt.tokens;receiptCount++;unknownCharges--;
         const raw=body.output.flatMap((o:{content?:{type:string,text?:string}[]})=>o.content??[]).find((c:{type:string})=>c.type==='output_text')?.text;
-        const decision=z.object({actions:z.array(action).max(4),memo:z.string().optional()}).parse(JSON.parse(raw??'{}'));
+        const parsed=JSON.parse(raw??'{}',(_key,value)=>value===null?undefined:value);
+        const decision=z.object({actions:z.array(action).max(4),memo:z.string().optional()}).parse(parsed);
         moves=decision.actions;memo=decision.memo??'';
       }
       history.push(memo.slice(0,900));
@@ -208,7 +218,8 @@ async function main(){
       }
       if(!process.argv.includes('--reviewed-calibration'))throw Error('Inspect calibration outcomes and pass --reviewed-calibration');
     }
-    const queue=jobs.filter(j=>j.phase===command&&!existsSync(root+'/attempts/'+j.id+'.json'));
+    const only=process.argv.find(s=>s.startsWith('--id='))?.slice(5);
+    const queue=jobs.filter(j=>j.phase===command&&(!only||j.id===only)&&!existsSync(root+'/attempts/'+j.id+'.json'));
     const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,env:{}});
     try{
       let stop=false;

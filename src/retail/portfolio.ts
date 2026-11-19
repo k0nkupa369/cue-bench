@@ -2,6 +2,8 @@ import {existsSync,readdirSync,readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {conditions, workflows, type Desk} from './ledger.ts';
+import {charts} from './charts.ts';
+import {analyze,summarize} from './analysis.ts';
 import {capture,grade,type Attempt} from './grade.ts';
 import {escape as h,page} from './views.ts';
 
@@ -57,9 +59,16 @@ export function results(params:URLSearchParams){
   const cohorts=['openai','human','scripted'].map(origin=>{
     const members=filtered.filter(r=>r.origin===origin);if(!members.length)return '';
     const scores=members.map(grade);
-    return '<p><strong>'+origin+' · '+scores.filter(g=>g.complete).length+' / '+members.length+' completed correctly</strong> · '+scores.filter(g=>g.recovery).length+' / '+scores.filter(g=>g.recovery!==null).length+' recovered · '+members.filter(r=>r.termination==='interrupted').length+' interrupted</p>';
+    const summary=summarize(members);
+    return '<div class="cohort"><p><strong>'+origin+' · '+scores.filter(g=>g.complete).length+' / '+members.length+' completed correctly</strong> · '+scores.filter(g=>g.recovery).length+' / '+scores.filter(g=>g.recovery!==null).length+' recovered · '+members.filter(r=>r.termination==='interrupted').length+' interrupted</p><dl class="cohortstats"><div><dt>Excess units</dt><dd>'+summary.excessUnits+'</dd></div><div><dt>Excess refunds</dt><dd>US$'+(summary.excessCreditCents/100).toFixed(2)+'</dd></div><div><dt>Unsafe writes</dt><dd>'+summary.unsafeWrites+'</dd></div><div><dt>Blocked writes</dt><dd>'+summary.blocked+'</dd></div><div><dt>Median / p95 time</dt><dd>'+summary.medianSeconds?.toFixed(1)+' / '+summary.p95Seconds?.toFixed(1)+'s</dd></div><div><dt>Justified handoffs</dt><dd>'+summary.justifiedHandoffs+' / '+summary.conflictCases+'</dd></div><div><dt>Unnecessary handoffs</dt><dd>'+summary.unnecessaryHandoffs+' / '+summary.solvableCases+'</dd></div>'+(origin==='openai'?'<div><dt>Metered cost per correct job</dt><dd>'+(summary.costPerCorrect===null?'—':'US$'+summary.costPerCorrect.toFixed(4))+'</dd></div>':'')+'</dl></div>';
   }).join('');
-  return shell('<p class="eyebrow">Research / Evidence</p><h1>Results explorer</h1><form class="filters" method="get">'+fields.map(k=>filter(k,[...new Set(rows.map(r=>r[k]))].sort(),params.get(k)??'')).join('')+'<button>Apply filters</button></form>'+
+  if(params.get('study')==='matched'){
+    const research=analyze(rows);
+    const pct=(v:number|null)=>v===null?'—':(v*100).toFixed(1)+'%';
+    const paired=research.pairs.map(pair=>'<section><h2>'+h(pair.comparison)+'</h2><p>'+pair.matched+' / '+pair.planned+' matched pairs · success difference '+(pair.mean===null?'—':(pair.mean*100).toFixed(1)+' percentage points')+'</p><p>95% seed-resampling interval: '+(pair.interval?pair.interval.map(v=>pct(v)).join(' to '):'pending')+'</p>'+link(url('/results',{origin:'openai',phase:pair.phase}),'Inspect contributing attempts')+'</section>').join('');
+    return shell('<p class="eyebrow">Live model research</p><h1>Matched comparisons</h1><p>'+research.observed+' / '+research.planned+' scheduled attempts. Compare identical starting records and keep interruptions in the denominator.</p>'+paired+charts(research)+'<p>Intervals resample starting datasets. Four seeds give limited evidence about new datasets.</p>','Matched comparisons');
+  }
+  return shell('<p class="eyebrow">Research / Evidence</p><h1>Results explorer</h1><p><a href="/results?study=matched">View matched model and interface comparisons</a></p><form class="filters" method="get">'+fields.map(k=>filter(k,[...new Set(rows.map(r=>r[k]))].sort(),params.get(k)??'')).join('')+'<button>Apply filters</button></form>'+
     (cohorts||'<p>No attempts match these filters.</p>')+
     '<div class="scroll"><table><thead><tr><th>Attempt</th><th>Origin</th><th>Stop</th><th>Outcome</th><th>Recovery</th><th>Excess units</th></tr></thead><tbody>'+filtered.map(traceRow).join('')+'</tbody></table></div>','Results explorer');
 }
@@ -76,9 +85,20 @@ function frameCard(a:Attempt,index:number){
     (f.image?'<img src="/screens/'+h(f.image)+'" alt="Browser viewport at this observation">':'')+
     '<details '+(f.image?'':'open')+'><summary>Browser evidence</summary><pre>'+h(f.view)+'</pre></details><p class="ledger">Underlying ledger · '+units.join(' / ')+' units</p><small>'+f.elapsedMs+' ms from start · frame '+(Math.max(0,Math.min(series.length-1,index))+1)+' of '+series.length+'</small></article>';
 }
-function anchor(a:Attempt){
-  const event=a.events.findIndex(e=>e.result==='timeout');
-  return event<0?0:Math.max(0,frames(a).findIndex(f=>f.eventCount>event));
+function frameForEvent(a:Attempt,event:number){
+  if(event<0)return 0;
+  const series=frames(a),i=series.findIndex(f=>f.eventCount>event);
+  return i>=0?i:Math.max(0,series.length-1);
+}
+function decisionAnchors(a:Attempt,b:Attempt){
+  const [left,right]=[a,b].map(run=>{
+    const fault=run.events.findIndex(e=>e.result==='timeout');
+    return run.events.map((e,i)=>({i,key:JSON.stringify([e.kind,e.screen,e.units,e.result])})).slice(fault+1);
+  });
+  let i=0;
+  while(left[i] && right[i] && left[i].key===right[i].key)i++;
+  if(i===left.length&&i===right.length)return;
+  return [frameForEvent(a,left[i]?.i??a.events.length-1),frameForEvent(b,right[i]?.i??b.events.length-1)];
 }
 export function replay(params:URLSearchParams){
   const rows=attempts(),first=rows.find(r=>r.id===(params.get('a')??'receiving-partial-1-verify'));
@@ -86,12 +106,16 @@ export function replay(params:URLSearchParams){
   const peers=rows.filter(r=>r.id!==first.id && r.workflow===first.workflow && r.seed===first.seed && r.condition===first.condition);
   const second=peers.find(r=>r.id===params.get('b'))??peers.find(r=>r.model!==first.model)??peers[0];
   if(!second)return trace(first.id);
-  const min=-Math.max(anchor(first),anchor(second)),max=Math.max(frames(first).length-anchor(first),frames(second).length-anchor(second))-1;
+  const faults=[first,second].map(a=>a.events.findIndex(e=>e.result==='timeout'));
+  const diverged=decisionAnchors(first,second);
+  const at=params.get('at')==='decision' && diverged?'decision':'fault';
+  const [left,right]=at==='decision'?diverged!:[frameForEvent(first,faults[0]),frameForEvent(second,faults[1])];
+  const min=-Math.max(left,right),max=Math.max(frames(first).length-left,frames(second).length-right)-1;
   const step=Math.min(max,Math.max(min,Number.parseInt(params.get('step')??'0')||0));
-  const nav=(delta:number,label:string)=>link(url('/replays',{a:first.id,b:second.id,step:String(delta)}),label);
-  return shell('<p class="eyebrow">'+h(first.workflow)+' / '+h(first.condition)+' / dataset '+first.seed+'</p><h1>Replay room</h1><p>Compare two operators from the same opening state. Step zero is the first visible timeout, or the opening screen for a clean run. Shorter traces hold their last frame.</p>'+
+  const nav=(delta:number,label:string)=>link(url('/replays',{a:first.id,b:second.id,at,step:String(delta)}),label);
+  return shell('<p class="eyebrow">'+h(first.workflow)+' / '+h(first.condition)+' / dataset '+first.seed+'</p><h1>Replay room</h1><p>Compare two operators from the same opening state. Traces align at the first timeout when observed, otherwise at the opening observation. Shorter traces hold their final frame.</p>'+
     '<form class="filters"><input type="hidden" name="a" value="'+h(first.id)+'"><label>Compare with<select name="b">'+peers.map(r=>'<option '+(r.id===second.id?'selected ':'')+'value="'+h(r.id)+'">'+h(r.id)+'</option>').join('')+'</select></label><button>Compare</button></form>'+
-    '<div class="transport">'+(step>min?nav(step-1,'← Previous'):'<span>Start</span>')+'<strong>Step '+step+'</strong>'+nav(0,'Align at fault')+(step<max?nav(step+1,'Next →'):'<span>End</span>')+'</div><div class="compare">'+frameCard(first,anchor(first)+step)+frameCard(second,anchor(second)+step)+'</div><p>'+link(url('/trace',{id:first.id}),'Full first attempt')+' · '+link(url('/trace',{id:second.id}),'Full second attempt')+'</p>','Replay room');
+    '<div class="transport">'+(step>min?nav(step-1,'← Previous'):'<span>Start</span>')+'<strong>Step '+step+'</strong>'+link(url('/replays',{a:first.id,b:second.id}),'Align at fault')+(diverged?link(url('/replays',{a:first.id,b:second.id,at:'decision'}),'First different decision'):'')+(step<max?nav(step+1,'Next →'):'<span>End</span>')+'</div><div class="compare">'+frameCard(first,left+step)+frameCard(second,right+step)+'</div><p>'+link(url('/trace',{id:first.id}),'Full first attempt')+' · '+link(url('/trace',{id:second.id}),'Full second attempt')+'</p>','Replay room');
 }
 export function trace(id:string){
   const all=attempts();
